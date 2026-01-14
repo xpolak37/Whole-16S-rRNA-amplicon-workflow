@@ -23,7 +23,7 @@ mkdir ${path_output}/reports/
 for read in ${path_input}/*.fastq.gz
 do
     sample_name=$(basename "${read}" | sed 's/.fastq.gz//')
-	cutadapt \
+	cutadapt --quiet \
     -g ^AGRGTTYGATYMTGGCTCAG \
     -a RGYTACCTTGTTACGACTT$ \
     -a 'A{10}' -a 'G{10}' \

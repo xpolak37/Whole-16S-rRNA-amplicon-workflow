@@ -24,8 +24,8 @@ decipher_classifier <- args[8]
 reads_path <- list.files(input_path, pattern="fastq.gz", full.names=TRUE)
 
 # Filtering
-filts <- file.path(reads_path, "filtered", basename(reads_path))
-out <- filterAndTrim(reads_path, filts, minQ=minQ, minLen=minLen, maxLen=maxLen, maxN=maxN, rm.phix=FALSE, maxEE=maxEE,multithread=20)
+filts <- file.path(output_path, "filtered")
+out <- filterAndTrim(reads_path, filts, minQ=minQ, minLen=minLen, maxLen=maxLen, maxN=maxN, rm.phix=FALSE, maxEE=maxEE,multithread=20,verbose=FALSE)
 
 # Denoising
 err <- learnErrors(filts, errorEstimationFunction=dada2:::PacBioErrfun, BAND_SIZE=32, multithread=20)
@@ -71,6 +71,10 @@ confidence_df <- sapply(tax_info, function(x) {
 asv_tax_conf_df <- asv_tax_df
 asv_tax_conf_df$confidence <- confidence_df
 
+# saving results
+write.table(seqtab.nochim,file.path(output_path,"ASV_table.tsv"),row.names = TRUE,sep="\t",quote=FALSE)
+write.table(asv_tax_df,file=file.path(output_path,"taxa_table.tsv"),sep="\t",row.names=FALSE,quote=FALSE)
+write.table(asv_tax_conf_df,file=file.path(output_path,"taxa_table_conf.tsv"),sep="\t",row.names=FALSE,quote=FALSE)
 
 # track version
 cat(paste("DECIPHER",packageVersion("DECIPHER")), "\n", 
@@ -81,9 +85,5 @@ cat(paste("Classifier", basename(decipher_classifier)), "\n",
 
 # track
 track <- cbind(out, sapply(dd, getN), rowSums(seqtab.nochim))
-
-# saving results
 write.table(track,file.path(output_path,"track_control.tsv"),row.names = TRUE,sep="\t",quote=FALSE)
-write.table(seqtab.nochim,file.path(output_path,"ASV_table.tsv"),row.names = TRUE,sep="\t",quote=FALSE)
-write.table(asv_tax_df,file=file.path(output_path,"taxa_table.tsv"),sep="\t",row.names=FALSE,quote=FALSE)
-write.table(asv_tax_conf_df,file=file.path(output_path,"taxa_table_conf.tsv"),sep="\t",row.names=FALSE,quote=FALSE)
+

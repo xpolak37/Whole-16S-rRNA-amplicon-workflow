@@ -7,10 +7,10 @@ eval "$(conda shell.bash hook)"
 export input_dir="/home/povp/seq_data/16S/pacbio_novogene_jan26/data/pool1/"
 export project_dir="/home/povp/Projects/pacbio_novogene_jan26/pool1/"
 export TMPDIR="/home/povp/tmp"
-export decipher_classifier="/home/povp/taxonomic_classifiers/decipher_classifier/idtaxa_trainingSet_V3V4_silva_138_2.RData"
+export decipher_classifier="/home/povp/taxonomic_classifiers/decipher_classifier/idtaxa_trainingSet_W16S_silva_138_2.RData"
 
 # CONDA ENVIRONMENTS
-export pacbio_16s_env="/home/povp/conda_envs/pacbio_16/"
+export pacbio_16s_env="/home/povp/conda_envs/pacbio_16s/"
 export blast_env="/home/povp/conda_envs/blast_env"
 
 # PARAMETERS
@@ -44,7 +44,6 @@ while [[ $# -gt 0 ]]; do
         --skip_quality) perform_quality_control=FALSE; shift ;;
         --skip_preprocessing) perform_preprocessing=FALSE; shift ;;
         --skip_denoising) perform_denoising=FALSE; shift ;;
-        --skip_taxassignment) perform_taxassignment=FALSE; shift ;;
         --blast_env) blast_env=$2; shift 2;;
         --main_env) pacbio_16s_env=$2; shift 2;;
         *)
@@ -67,7 +66,6 @@ if [[ "${perform_quality_control}" == "TRUE" ]]; then
     echo "Performing quality control..."
     cd quality_control
     bash main_qc.sh ${pacbio_16s_env} ${blast_env} ${input_dir} ${project_dir}
-    conda activate ${pacbio_16s_env}
     cd ${path_scripts}
 fi
 
@@ -85,8 +83,9 @@ fi
 # Denoising
 if [[ "${perform_denoising}" == "TRUE" ]]; then
     cd denoising
-
     mkdir ${project_dir}/denoised
+
+    conda activate ${pacbio_16s_env}
     echo "Running Dada2 for denoising ..."
     Rscript main_dada2.R ${project_dir}/decontaminated/human_phix ${project_dir}/denoised ${minQ} ${minLen} ${maxLen} ${maxN} ${maxEE} ${decipher_classifier}
     echo Done

@@ -10,7 +10,7 @@ path_project_dir=$3
 path_output=${path_project_dir}/decontaminated
 
 # path to phix bowtie indexed
-path_bowtie_phix="/home/povp/scripts/Metagenomics_workflow/preprocessing/bowtie2_indexes/phiX174"
+path_fasta_phix="/home/povp/scripts/Metagenomics_workflow/preprocessing/Escherichia_phage_phiX174.fasta"
 
 # activate environment
 conda activate ${amplicon_16s_env}
@@ -37,9 +37,9 @@ find ${path_input} -type f -name "*_trimmed.fastq.gz" | sed 's/_trimmed.fastq.gz
 --threads 5"
 
 # phix decontamination
-find ${path_output}/human/ -type f -name "*_trimmed.clean_1.fastq.gz" | sed 's/_trimmed.clean_1.fastq.gz//' | parallel -j 10 "hostile clean \
---fastq1 {}_trimmed.clean_1.fastq.gz \
---index ${path_bowtie_phix} \
+find ${path_output}/human/ -type f -name "*_trimmed.clean.fastq.gz" | sed 's/_trimmed.clean.fastq.gz//' | parallel -j 10 "hostile clean \
+--fastq1 {}_trimmed.clean.fastq.gz \
+--index ${path_fasta_phix} \
 --output ${path_output}/human_phix/ \
 --threads 5"
 
@@ -47,8 +47,8 @@ find ${path_output}/human/ -type f -name "*_trimmed.clean_1.fastq.gz" | sed 's/_
 echo "hostile" $(hostile --version) >> ${path_project_dir}/run_info/tools.txt
 
 # renaming samples to end with '_trimmed_cleaned.fastq.gz'
-for f in ${path_output}/human_phix/*_trimmed.clean_*.fastq.gz; do
-    newname=$(echo "$f" | sed -E 's/_trimmed\.clean_[12](\.clean_[12])?/_trimmed_cleaned/')
+for f in ${path_output}/human_phix/*_trimmed*.fastq.gz; do
+    newname=$(echo "$f" | sed -E 's/_trimmed(\.clean)+/_trimmed_cleaned/')
     mv "$f" "$newname"
 done
 
