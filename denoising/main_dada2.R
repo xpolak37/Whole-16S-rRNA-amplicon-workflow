@@ -78,10 +78,10 @@ write.table(asv_tax_conf_df,file=file.path(output_path,"taxa_table_conf.tsv"),se
 
 # track version
 cat(paste("DECIPHER",packageVersion("DECIPHER")), "\n", 
-    file = file.path(path_project_dir,"run_info/tools.txt"), append = TRUE)
+    file = file.path(output_path,"../run_info/tools.txt"), append = TRUE)
 
 cat(paste("Classifier", basename(decipher_classifier)), "\n", 
-    file = file.path(path_project_dir,"run_info/tools.txt"), append = TRUE)
+    file = file.path(output_path,"../run_info/tools.txt"), append = TRUE)
 
 # track
 track <- cbind(out, sapply(dd, getN), rowSums(seqtab.nochim))
