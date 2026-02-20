@@ -28,11 +28,10 @@ do
     -a RGYTACCTTGTTACGACTT$ \
     -a 'A{10}' -a 'G{10}' \
 	--cores 20 \
-    --discard-untrimmed \
     --revcomp \
     -o ${path_output}/${sample_name}_trimmed.fastq.gz \
     ${read}
-	
+	# --discard-untrimmed 
 done
 
 ## track version

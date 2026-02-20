@@ -122,6 +122,8 @@ hostile clean \
 
 ### 🧬 **<u> 3. Denoising</u>**
 
+<span style="color:red">The denoising step will be optional in the future, with only the chimera removal step being retained. By default, only sequences with an abundance lower than 0.001% will be removed.</span>.
+
 Performs denosing using **DADA2** following this particular tutorial:  https://github.com/benjjneb/LRASManuscript/blob/master/LRASms_fecal.Rmd. 
 
 - **DADA2** uses a model-based approach to correct sequencing errors by learning error rates from the data itself and distinguishing true biological sequences (amplicon sequence variants, ASVs) from errors. It performs quality filtering, error modeling, dereplication, and chimera removal, providing single-nucleotide resolution of microbial variants.
