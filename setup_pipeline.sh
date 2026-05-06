@@ -173,8 +173,13 @@ if [ -s "$HOSTILE_MMI" ]; then
     log_warn "$HOSTILE_MMI already present — skipping"
 else
     log_info "Fetching hostile minimap2 index (long-read variant) — this is ~3-5 GB..."
+    # hostile streams the download through Python's tempfile.gettempdir(), which
+    # defaults to /tmp inside the container. /tmp is typically a small tmpfs, so
+    # redirect TMPDIR to the install partition.
+    mkdir -p "${HOSTILE_DIR}/tmp"
     singularity exec --bind "${HOSTILE_DIR}:${HOSTILE_DIR}" --pwd "${HOSTILE_DIR}" \
         --env HOSTILE_CACHE_DIR="${HOSTILE_DIR}" \
+        --env TMPDIR="${HOSTILE_DIR}/tmp" \
         "${SING_DIR}/hostile-1.1.0.img" \
         hostile fetch --aligner minimap2 --name human-t2t-hla-argos985-mycob140 \
         >> "$LOGFILE" 2>&1 \
@@ -363,7 +368,9 @@ else
     if ls "$BLAST_DB_DIR"/16S_ribosomal_RNA.n* 1>/dev/null 2>&1; then
         log_warn "BLAST DB already present — skipping"
     else
+        mkdir -p "${BLAST_DB_DIR}/tmp"
         singularity exec --bind "${BLAST_DB_DIR}:${BLAST_DB_DIR}" --pwd "${BLAST_DB_DIR}" \
+            --env TMPDIR="${BLAST_DB_DIR}/tmp" \
             "${SING_DIR}/blast-2.15.0.img" \
             update_blastdb.pl --decompress 16S_ribosomal_RNA \
             >> "$LOGFILE" 2>&1 \
