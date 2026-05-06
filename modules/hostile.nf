@@ -13,9 +13,15 @@ process HOST_REMOVAL {
 
     script:
     """
-    # [stub] hostile clean --index ${params.hostile_index_dir} ...
-    touch ${meta.id}.clean.fastq.gz
-    printf 'sample\\tcount\\n%s\\t0\\n' "${meta.id}" > ${meta.id}.host_removal.counts.tsv
+    hostile clean \\
+        --fastq1 ${reads} \\
+        --index ${params.hostile_index_dir}/human-t2t-hla-argos985-mycob140 \\
+        --output . \\
+        --threads ${task.cpus}
+
+    out=\$(ls *.clean.fastq.gz | head -n1)
+    count=\$(zcat "\$out" | awk 'END{print NR/4}')
+    printf 'sample\\tcount\\n%s\\t%s\\n' "${meta.id}" "\$count" > ${meta.id}.host_removal.counts.tsv
     """
 }
 
@@ -34,8 +40,19 @@ process PHIX_REMOVAL {
 
     script:
     """
-    # [stub] hostile clean --index ${params.phix_fasta} ...
-    touch ${meta.id}_trimmed_cleaned.fastq.gz
-    printf 'sample\\tcount\\n%s\\t0\\n' "${meta.id}" > ${meta.id}.phix_removal.counts.tsv
+    hostile clean \\
+        --fastq1 ${reads} \\
+        --index ${params.phix_fasta} \\
+        --output . \\
+        --threads ${task.cpus}
+
+    # hostile appends .clean → reads is *.clean.fastq.gz, output is *.clean.clean.fastq.gz.
+    # Rename to the bash pipeline's *_trimmed_cleaned.fastq.gz convention.
+    raw=\$(ls *.clean.clean.fastq.gz | head -n1)
+    final="${meta.id}_trimmed_cleaned.fastq.gz"
+    mv "\$raw" "\$final"
+
+    count=\$(zcat "\$final" | awk 'END{print NR/4}')
+    printf 'sample\\tcount\\n%s\\t%s\\n' "${meta.id}" "\$count" > ${meta.id}.phix_removal.counts.tsv
     """
 }
