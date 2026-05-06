@@ -5,7 +5,7 @@ process DADA2_PACBIO {
     publishDir "${params.outdir}/dada2/dada2", mode: 'copy'
 
     input:
-    path '*'   // all oriented fastqs collected
+    path '*'
 
     output:
     tuple val('dada2'), path('ASV_table.tsv'), path('ASV_sequences.fasta'), emit: asv
@@ -14,9 +14,14 @@ process DADA2_PACBIO {
 
     script:
     """
-    # [stub] real R script lives in bin/dada2_pacbio.R; Nextflow auto-runs in this task's work dir
-    dada2_pacbio.R . . ${params.minQ} ${params.minLen} ${params.maxLen} ${params.maxN} ${params.maxEE}
-    printf 'sample\\tcount\\n_cohort_\\t0\\n' > dada2.counts.tsv
+    Rscript ${projectDir}/bin/dada2_pacbio.R \\
+        --input . \\
+        --nproc ${task.cpus} \\
+        --minQ ${params.minQ} \\
+        --minLen ${params.minLen} \\
+        --maxLen ${params.maxLen} \\
+        --maxN ${params.maxN} \\
+        --maxEE ${params.maxEE}
     """
 }
 
@@ -36,7 +41,14 @@ process DADA2_PACBIO_NODENOISE {
 
     script:
     """
-    dada2_pacbio_nodenoise.R . . ${params.minQ} ${params.minLen} ${params.maxLen} ${params.maxN} ${params.maxEE} ${params.minAbundance}
-    printf 'sample\\tcount\\n_cohort_\\t0\\n' > dada2_nodenoise.counts.tsv
+    Rscript ${projectDir}/bin/dada2_pacbio_nodenoise.R \\
+        --input . \\
+        --nproc ${task.cpus} \\
+        --minQ ${params.minQ} \\
+        --minLen ${params.minLen} \\
+        --maxLen ${params.maxLen} \\
+        --maxN ${params.maxN} \\
+        --maxEE ${params.maxEE} \\
+        --minAbundance ${params.minAbundance}
     """
 }
