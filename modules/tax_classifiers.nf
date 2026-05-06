@@ -11,10 +11,37 @@ process QIIME_NAIVE_BAYES {
     tuple val(denoiser), val('qnb'), path('taxa_table_qnb.tsv'), emit: taxa
 
     script:
-    def classifier = 'qnb'
     """
-    # [stub] qiime feature-classifier classify-sklearn ...
-    touch taxa_table_qnb.tsv
+    export NUMBA_CACHE_DIR=\${PWD}/numba_cache
+    export TMPDIR=\${PWD}/tmp
+    mkdir -p \${NUMBA_CACHE_DIR} \${TMPDIR}
+
+    qiime tools import \\
+        --input-path ${asv_fasta} \\
+        --output-path rep-seqs.qza \\
+        --type 'FeatureData[Sequence]'
+
+    qiime feature-classifier classify-sklearn \\
+        --i-reads rep-seqs.qza \\
+        --i-classifier ${params.classifiers_dir}/qnb_classifier.qza \\
+        --p-n-jobs ${task.cpus} \\
+        --p-confidence ${params.qiime_naive_bayes_confidence} \\
+        --o-classification taxonomy.qza
+
+    qiime tools export --input-path taxonomy.qza --output-path .
+
+    python3 - <<'EOF'
+import csv
+with open("taxonomy.tsv", newline='') as fin, \\
+     open("taxa_table_qnb.tsv", "w", newline='') as fout:
+    reader = csv.reader(fin, delimiter="\\t")
+    writer = csv.writer(fout, delimiter="\\t")
+    header = next(reader)
+    header[0], header[1], header[2] = "SeqID", "Taxonomy", "Confidence"
+    writer.writerow(header)
+    for row in reader:
+        writer.writerow(row)
+EOF
     """
 }
 
@@ -31,9 +58,41 @@ process QIIME_BLAST {
     tuple val(denoiser), val('qblast'), path('taxa_table_qblast.tsv'), emit: taxa
 
     script:
-    def classifier = 'qblast'
     """
-    touch taxa_table_qblast.tsv
+    export NUMBA_CACHE_DIR=\${PWD}/numba_cache
+    export TMPDIR=\${PWD}/tmp
+    mkdir -p \${NUMBA_CACHE_DIR} \${TMPDIR}
+
+    qiime tools import \\
+        --input-path ${asv_fasta} \\
+        --output-path rep-seqs.qza \\
+        --type 'FeatureData[Sequence]'
+
+    qiime feature-classifier classify-consensus-blast \\
+        --i-query rep-seqs.qza \\
+        --i-reference-reads ${params.classifiers_dir}/qblast_seqs.qza \\
+        --i-reference-taxonomy ${params.classifiers_dir}/qblast_tax.qza \\
+        --p-num-threads ${task.cpus} \\
+        --p-perc-identity ${params.blast_percidentity} \\
+        --p-strand both \\
+        --p-min-consensus ${params.blast_minconsensus} \\
+        --o-classification taxonomy.qza \\
+        --o-search-results blast_results.qza
+
+    qiime tools export --input-path taxonomy.qza --output-path .
+
+    python3 - <<'EOF'
+import csv
+with open("taxonomy.tsv", newline='') as fin, \\
+     open("taxa_table_qblast.tsv", "w", newline='') as fout:
+    reader = csv.reader(fin, delimiter="\\t")
+    writer = csv.writer(fout, delimiter="\\t")
+    header = next(reader)
+    header[0], header[1], header[2] = "SeqID", "Taxonomy", "Confidence"
+    writer.writerow(header)
+    for row in reader:
+        writer.writerow(row)
+EOF
     """
 }
 
@@ -47,12 +106,18 @@ process IDTAXA {
     tuple val(denoiser), path(asv_table), path(asv_fasta)
 
     output:
-    tuple val(denoiser), val('idtaxa'), path('taxa_table_idtaxa.tsv'), path('taxa_table_idtaxa_conf.tsv'), emit: taxa
+    tuple val(denoiser), val('idtaxa'),
+          path('taxa_table_idtaxa.tsv'),
+          path('taxa_table_idtaxa_conf.tsv'), emit: taxa
 
     script:
-    def classifier = 'idtaxa'
     """
-    Rscript ${projectDir}/bin/idtaxa.R ${asv_fasta} ${params.classifiers_dir}/idtaxa.RData taxa_table_idtaxa.tsv taxa_table_idtaxa_conf.tsv
+    Rscript ${projectDir}/bin/idtaxa.R \\
+        ${asv_fasta} \\
+        ${params.classifiers_dir}/idtaxa.RData \\
+        ${task.cpus} \\
+        taxa_table_idtaxa.tsv \\
+        taxa_table_idtaxa_conf.tsv
     """
 }
 
@@ -69,14 +134,17 @@ process ASSIGNTAXONOMY {
     tuple val(denoiser), val('assigntaxonomy'), path('taxa_table_assigntaxonomy.tsv'), emit: taxa
 
     script:
-    def classifier = 'assigntaxonomy'
-    // bin/assigntaxonomy.R is real code from the sibling repo; it requires a
-    // SILVA reference at classifiers_dir/silva_assigntaxonomy.fa.gz. Touch the
-    // output instead when no reference dir is provided so scaffold validation
-    // (and any --classifiers_dir-less run) still passes channel topology.
+    // bin/assigntaxonomy.R is the sibling script; it writes
+    // ${denoising_tool}_taxa_table.tsv. Rename to the scaffold's contract.
     if (params.classifiers_dir) {
         """
-        Rscript ${projectDir}/bin/assigntaxonomy.R ${asv_fasta} ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz taxa_table_assigntaxonomy.tsv
+        Rscript ${projectDir}/bin/assigntaxonomy.R \\
+            ${asv_fasta} \\
+            ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz \\
+            ${task.cpus} \\
+            ${denoiser}
+
+        mv ${denoiser}_taxa_table.tsv taxa_table_assigntaxonomy.tsv
         """
     } else {
         """
