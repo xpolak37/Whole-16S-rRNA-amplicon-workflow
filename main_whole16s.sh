@@ -4,7 +4,7 @@ eval "$(conda shell.bash hook)"
 
 ####### USER INPUTS #########
 # DIRECTORIES
-export input_dir="/home/povp/Projects/g363_longreads/plzen_library/multiplexed_analysis/test/"
+export input_dir="/home/povp/Projects/g363_longreads/plzen_library/multiplexed_analysis/trimmed/"
 export project_dir="/home/povp/Projects/g363_longreads/plzen_library/multiplexed_analysis/"
 export TMPDIR="/home/povp/tmp"
 export decipher_classifier="/home/povp/taxonomic_classifiers/decipher_classifier/idtaxa_trainingSet_W16S_silva_138_2.RData"
@@ -27,7 +27,7 @@ maxEE=Inf
 minAbundance=0.001
 
 ## VSEARCH - copying default from https://github.com/PacificBiosciences/HiFi-16S-workflow/blob/main/nextflow.config
-vsearch_identity=0.97
+vsearch_identity=0.95
 vsearch_maxreject=100
 vsearch_maxaccept=100
 vsearch_pminconsensus=0.51
@@ -191,11 +191,11 @@ fi
 
 if [[ "${perform_taxonomy}" == "TRUE" ]]; then
     cd taxonomy
-    mkdir ${project_dir}/taxonomyconda 
+    mkdir ${project_dir}/taxonomy
 
     if [[ "${perform_vsearch}" == "TRUE" ]]; then
         echo "Running qiime feature-classifier-vsearch for taxonomic classification ..."
-        bash qiime_vsearch.sh ${qiime_env} ${project_dir}/denoised ${project_dir} ${vsearch_db} ${vsearch_tax} ${vsearch_identity} ${vsearch_maxreject} ${vsearch_maxaccept}
+        bash qiime_vsearch.sh ${qiime_env} ${project_dir}/denoised ${project_dir} ${vsearch_db} ${vsearch_tax} ${vsearch_identity} ${vsearch_maxreject} ${vsearch_maxaccept} ${vsearch_pminconsensus}
         echo Done
     fi
 

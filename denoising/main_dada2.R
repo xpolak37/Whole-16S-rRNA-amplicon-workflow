@@ -48,10 +48,32 @@ if (perform_denoising){
 } else {
     # only dereplicate
     dd <- derepFastq(filts, verbose=FALSE)
+
 }
 
 # ASV table
  seqtab <- makeSequenceTable(dd)
+
+# when we are not denoising, filter according to abundance
+filter_low_abundance <- function(df, threshold = 0.01) {
+  
+  # Normalize counts to relative abundance (divide each row by its row sum)
+  df_normalized <- df / rowSums(df)
+  
+  # Calculate mean relative abundance per feature across all samples
+  mean_abundance <- colMeans(df_normalized)
+  
+  # Keep only features with mean relative abundance >= threshold
+  features_to_keep <- names(mean_abundance[mean_abundance >= threshold])
+  
+  df_filtered <- df[, features_to_keep]
+
+  return(df_filtered)
+}
+
+if (!perform_denoising){
+    seqtab.nochim <- filter_low_abundance(df, threshold = minAbundance)
+}
 
 cat("Removing chimeras\n")
 # Chimeras
@@ -59,11 +81,14 @@ seqtab.nochim <- removeBimeraDenovo(seqtab, minFoldParentOverAbundance=3.5, mult
 # *minFoldParentOverAbundance = Only sequences greater than this-fold more abundant than a sequence can be its "parents".
 
 # Saving results
-write.table(t(seqtab.nochim),file.path(output_path,"ASV_table.tsv"),row.names = TRUE,sep="\t",quote=FALSE)
+seqtab.nochim <- as.data.frame(t(seqtab.nochim))
+colnames(seqtab.nochim) <- sample.names
+seqtab.nochim$SeqID <- row.names(seqtab.nochim)
+write.table(seqtab.nochim,file.path(output_path,"ASV_table.tsv"),row.names = FALSE,sep="\t",quote=FALSE)
 cat("ASV_table saved\n")
 
-## Extract ASV sequences (stored as column names)
-asv_seqs <- colnames(seqtab.nochim)
+## Extract ASV sequences (stored in SeqID)
+asv_seqs <- seqtab.nochim$SeqID
 
 # Create FASTA content
 fasta_lines <- unlist(
@@ -78,7 +103,7 @@ writeLines(fasta_lines, file.path(output_path, "ASV_sequences.fasta"))
 # track
 getN <- function(x) sum(getUniques(x))
 if (length(sample.names)==1) track <- cbind(out, sum(getUniques(dd)), rowSums(seqtab.nochim))
-else track <- cbind(out, sapply(dd, getN), rowSums(seqtab.nochim))
+else track <- cbind(out, sapply(dd, getN), colSums(seqtab.nochim))
 write.table(track,file.path(output_path,"track_control.tsv"),row.names = TRUE,sep="\t",quote=FALSE)
 
 cat("track control saved\n")

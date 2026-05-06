@@ -8,9 +8,12 @@ qiime_env=$1
 path_input=$2
 path_project_dir=$3
 path_output=${path_project_dir}/taxonomy
-vsearch_identity=$4
-vsearch_maxreject=$5
-vsearch_maxaccept=$6
+vsearch_db=$4
+vsearch_tax=$5
+vsearch_identity=$6
+vsearch_maxreject=$7
+vsearch_maxaccept=$8
+vsearch_pminconsensus=$9
 
 # info for tools and versions txt
 echo -e "\nqiime_vsearch.sh:" >> ${path_project_dir}/run_info/tools.txt
@@ -42,6 +45,4 @@ qiime feature-classifier classify-consensus-vsearch --i-query rep-seqs.qza \
 
 qiime tools export --input-path taxonomy.vsearch.qza --output-path tax_export
 
-qiime tools export \
---input-path taxonomy.vsearch.qza \
---output-path qiime_results
+mv ${path_output}/tax_export/taxonomy.tsv ${path_output}/tax_export/taxa_table.tsv
