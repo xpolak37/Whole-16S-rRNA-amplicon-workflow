@@ -13,8 +13,13 @@ process VSEARCH_ORIENT {
 
     script:
     """
-    # [stub] vsearch --orient ${reads} --db ${params.silva_orient_db} --fastqout ${meta.id}-oriented.fq
-    touch ${meta.id}-oriented.fq
-    printf 'sample\\tcount\\n%s\\t0\\n' "${meta.id}" > ${meta.id}.orient.counts.tsv
+    vsearch \\
+        --orient ${reads} \\
+        --db ${params.silva_orient_db} \\
+        --fastqout ${meta.id}-oriented.fq \\
+        --threads ${task.cpus}
+
+    count=\$(awk 'END{print NR/4}' ${meta.id}-oriented.fq)
+    printf 'sample\\tcount\\n%s\\t%s\\n' "${meta.id}" "\$count" > ${meta.id}.orient.counts.tsv
     """
 }
