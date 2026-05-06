@@ -168,14 +168,18 @@ fi
 echo ""
 log_info "=== STEP 3 — hostile minimap2 index ==="
 
+HOSTILE_FA="${HOSTILE_DIR}/human-t2t-hla-argos985-mycob140.fa.gz"
 HOSTILE_MMI="${HOSTILE_DIR}/human-t2t-hla-argos985-mycob140.mmi"
-if [ -s "$HOSTILE_MMI" ]; then
-    log_warn "$HOSTILE_MMI already present — skipping"
+
+# 3a — fetch the source fasta (hostile fetch only downloads .fa.gz; it does not
+# pre-build the .mmi).
+if [ -s "$HOSTILE_FA" ]; then
+    log_warn "$HOSTILE_FA already present — skipping fetch"
 else
-    log_info "Fetching hostile minimap2 index (long-read variant) — this is ~3-5 GB..."
-    # hostile streams the download through Python's tempfile.gettempdir(), which
-    # defaults to /tmp inside the container. /tmp is typically a small tmpfs, so
-    # redirect TMPDIR to the install partition.
+    log_info "Fetching hostile source fasta (~940 MB)..."
+    # hostile streams via Python's tempfile.gettempdir() which defaults to /tmp
+    # inside the container; /tmp is typically a small tmpfs, so redirect TMPDIR
+    # to the install partition.
     mkdir -p "${HOSTILE_DIR}/tmp"
     singularity exec --bind "${HOSTILE_DIR}:${HOSTILE_DIR}" --pwd "${HOSTILE_DIR}" \
         --env HOSTILE_CACHE_DIR="${HOSTILE_DIR}" \
@@ -184,15 +188,24 @@ else
         hostile fetch --aligner minimap2 --name human-t2t-hla-argos985-mycob140 \
         >> "$LOGFILE" 2>&1 \
         || { log_error "hostile fetch failed"; exit 1; }
+    [ -s "$HOSTILE_FA" ] || { log_error "hostile fasta missing after fetch"; exit 1; }
+    log_success "hostile fasta downloaded"
+fi
 
-    # hostile fetch puts the .mmi under HOSTILE_CACHE_DIR/<name>/<name>.mmi or
-    # similar; flatten to the path the pipeline expects.
-    found=$(find "${HOSTILE_DIR}" -maxdepth 4 -name 'human-t2t-hla-argos985-mycob140*.mmi' | head -n1 || true)
-    if [ -n "$found" ] && [ "$found" != "$HOSTILE_MMI" ]; then
-        mv "$found" "$HOSTILE_MMI"
-    fi
-    [ -s "$HOSTILE_MMI" ] || { log_error "hostile index missing after fetch"; exit 1; }
-    log_success "hostile index ready"
+# 3b — pre-build the minimap2 .mmi once. Without this, every HOST_REMOVAL task
+# would rebuild the index from .fa.gz (~5 min each).
+if [ -s "$HOSTILE_MMI" ]; then
+    log_warn "$HOSTILE_MMI already present — skipping index build"
+else
+    log_info "Pre-building minimap2 index (~5-10 min, output ~14 GB)..."
+    singularity exec --bind "${HOSTILE_DIR}:${HOSTILE_DIR}" --pwd "${HOSTILE_DIR}" \
+        --env TMPDIR="${HOSTILE_DIR}/tmp" \
+        "${SING_DIR}/hostile-1.1.0.img" \
+        minimap2 -x map-ont -d "$HOSTILE_MMI" "$HOSTILE_FA" \
+        >> "$LOGFILE" 2>&1 \
+        || { log_error "minimap2 index build failed"; exit 1; }
+    [ -s "$HOSTILE_MMI" ] || { log_error "hostile .mmi missing after build"; exit 1; }
+    log_success "hostile minimap2 index ready"
 fi
 
 #-------------------------------------------------------------------------------
