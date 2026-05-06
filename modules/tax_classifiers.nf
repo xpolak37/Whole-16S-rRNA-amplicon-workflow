@@ -1,6 +1,6 @@
 process QIIME_NAIVE_BAYES {
     tag "${denoiser}/qnb"
-    container 'quay.io/qiime2/amplicon:2024.10'
+    container 'quay.io/qiime2/amplicon:2026.1'
     cpus 4
 
     input:
@@ -19,7 +19,7 @@ process QIIME_NAIVE_BAYES {
 
 process QIIME_BLAST {
     tag "${denoiser}/qblast"
-    container 'quay.io/qiime2/amplicon:2024.10'
+    container 'quay.io/qiime2/amplicon:2026.1'
     cpus 4
 
     input:
@@ -37,7 +37,7 @@ process QIIME_BLAST {
 
 process IDTAXA {
     tag "${denoiser}/idtaxa"
-    container 'quay.io/biocontainers/bioconductor-decipher:2.30.0--r43hf17093f_0'
+    container 'quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0'
     cpus 4
 
     input:
