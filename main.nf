@@ -39,10 +39,60 @@ def resolveTools(String csv, List valid, String label) {
     return chosen.toList()
 }
 
+def helpMessage() {
+    log.info """
+    Usage:
+      nextflow run main.nf --input <samplesheet.csv> --outdir <dir>
+      nextflow run main.nf --bam <hifi.bam> --barcodes <bc.fa> --outdir <dir>
+
+    Mode 1 (samplesheet):
+      --input              CSV with columns: sample,fastq
+
+    Mode 2 (non-demuxed BAM):
+      --bam                PacBio HiFi BAM
+      --barcodes           Barcodes FASTA for lima
+      --lima_extra_args    Extra args passed to lima (default: '')
+
+    Common:
+      --outdir             Output directory                            (default: ./results)
+      --denoiser           Comma list: dada2,dada2_nodenoise           (default: dada2)
+      --classifiers        Comma list: qnb,qblast,idtaxa,assigntaxonomy (default: all four)
+      --all                Run every denoiser × classifier combination
+
+    References (required at runtime by the relevant stages):
+      --hostile_index_dir  hostile human index directory
+      --phix_fasta         PhiX174 FASTA
+      --silva_orient_db    Primer-anchored SILVA DB (vsearch --orient)
+      --classifiers_dir    Directory with classifier reference files
+
+    Primers (HiFi 16S — do not change):
+      --f_primer           ${params.f_primer}
+      --r_primer           ${params.r_primer}
+
+    DADA2 (PacBio-tuned — do not change):
+      --minQ ${params.minQ}  --minLen ${params.minLen}  --maxLen ${params.maxLen}  --maxN ${params.maxN}  --maxEE ${params.maxEE}  --minAbundance ${params.minAbundance}
+
+    Custom summary:
+      --custom_summary               (default: ${params.custom_summary})
+      --custom_summary_blast         (default: ${params.custom_summary_blast})
+      --custom_summary_blast_db      (default: ${params.custom_summary_blast_db})
+      --custom_summary_top_overreps  (default: ${params.custom_summary_top_overreps})
+      --min_reads_threshold          (default: ${params.min_reads_threshold})
+
+    Resource ceilings:
+      --max_cpus ${params.max_cpus}   --max_memory ${params.max_memory}   --max_time ${params.max_time}
+    """.stripIndent()
+}
+
 // ============================================================
 // Workflow
 // ============================================================
 workflow {
+    if (params.help) {
+        helpMessage()
+        return
+    }
+
     // mode validation
     def has_input = params.input != null
     def has_bam   = params.bam   != null

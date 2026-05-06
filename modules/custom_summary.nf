@@ -1,5 +1,5 @@
 process CUSTOM_SUMMARY_PARSE {
-    container 'quay.io/biocontainers/python:3.11--1'
+    container 'quay.io/biocontainers/pandas:2.2.1'
 
     input:
     path fastqc_zips
@@ -32,7 +32,7 @@ process CUSTOM_SUMMARY_BLAST {
 }
 
 process CUSTOM_SUMMARY_RENDER {
-    container 'quay.io/biocontainers/python:3.11--1'
+    container 'quay.io/biocontainers/pandas:2.2.1'
 
     input:
     tuple path(parsed), path(blast_hits)
