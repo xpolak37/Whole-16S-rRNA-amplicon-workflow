@@ -2,6 +2,7 @@ process QIIME_NAIVE_BAYES {
     tag "${denoiser}/qnb"
     container 'quay.io/qiime2/amplicon:2026.1'
     cpus 4
+    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/qnb" }, mode: 'copy'
 
     input:
     tuple val(denoiser), path(asv_table), path(asv_fasta)
@@ -21,6 +22,7 @@ process QIIME_BLAST {
     tag "${denoiser}/qblast"
     container 'quay.io/qiime2/amplicon:2026.1'
     cpus 4
+    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/qblast" }, mode: 'copy'
 
     input:
     tuple val(denoiser), path(asv_table), path(asv_fasta)
@@ -39,6 +41,7 @@ process IDTAXA {
     tag "${denoiser}/idtaxa"
     container 'quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0'
     cpus 4
+    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/idtaxa" }, mode: 'copy'
 
     input:
     tuple val(denoiser), path(asv_table), path(asv_fasta)
@@ -57,6 +60,7 @@ process ASSIGNTAXONOMY {
     tag "${denoiser}/assigntaxonomy"
     container 'quay.io/biocontainers/bioconductor-dada2:1.30.0--r43hf17093f_0'
     cpus 4
+    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/assigntaxonomy" }, mode: 'copy'
 
     input:
     tuple val(denoiser), path(asv_table), path(asv_fasta)
