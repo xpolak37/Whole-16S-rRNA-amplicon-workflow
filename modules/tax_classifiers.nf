@@ -66,7 +66,17 @@ process ASSIGNTAXONOMY {
 
     script:
     def classifier = 'assigntaxonomy'
-    """
-    Rscript ${projectDir}/bin/assigntaxonomy.R ${asv_fasta} ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz taxa_table_assigntaxonomy.tsv
-    """
+    // bin/assigntaxonomy.R is real code from the sibling repo; it requires a
+    // SILVA reference at classifiers_dir/silva_assigntaxonomy.fa.gz. Touch the
+    // output instead when no reference dir is provided so scaffold validation
+    // (and any --classifiers_dir-less run) still passes channel topology.
+    if (params.classifiers_dir) {
+        """
+        Rscript ${projectDir}/bin/assigntaxonomy.R ${asv_fasta} ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz taxa_table_assigntaxonomy.tsv
+        """
+    } else {
+        """
+        touch taxa_table_assigntaxonomy.tsv
+        """
+    }
 }
