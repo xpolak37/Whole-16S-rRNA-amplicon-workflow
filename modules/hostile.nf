@@ -15,7 +15,7 @@ process HOST_REMOVAL {
     """
     hostile clean \\
         --fastq1 ${reads} \\
-        --index ${params.hostile_index_dir}/human-t2t-hla-argos985-mycob140 \\
+        --index ${params.hostile_index_dir}/human-t2t-hla-argos985-mycob140.mmi \\
         --output . \\
         --threads ${task.cpus}
 
