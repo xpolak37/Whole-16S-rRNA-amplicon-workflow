@@ -49,7 +49,7 @@ process IDTAXA {
     script:
     def classifier = 'idtaxa'
     """
-    idtaxa.R ${asv_fasta} ${params.classifiers_dir}/idtaxa.RData taxa_table_idtaxa.tsv taxa_table_idtaxa_conf.tsv
+    Rscript ${projectDir}/bin/idtaxa.R ${asv_fasta} ${params.classifiers_dir}/idtaxa.RData taxa_table_idtaxa.tsv taxa_table_idtaxa_conf.tsv
     """
 }
 
@@ -67,6 +67,6 @@ process ASSIGNTAXONOMY {
     script:
     def classifier = 'assigntaxonomy'
     """
-    assigntaxonomy.R ${asv_fasta} ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz taxa_table_assigntaxonomy.tsv
+    Rscript ${projectDir}/bin/assigntaxonomy.R ${asv_fasta} ${params.classifiers_dir}/silva_assigntaxonomy.fa.gz taxa_table_assigntaxonomy.tsv
     """
 }
