@@ -12,8 +12,17 @@ process CUTADAPT {
 
     script:
     """
-    # [stub] cutadapt -g ${params.f_primer} -a ${params.r_primer} --revcomp ...
-    touch ${meta.id}_trimmed.fastq.gz
-    printf 'sample\\tcount\\n%s\\t0\\n' "${meta.id}" > ${meta.id}.cutadapt.counts.tsv
+    cutadapt \\
+        --quiet \\
+        --cores ${task.cpus} \\
+        --revcomp \\
+        -g ^${params.f_primer} \\
+        -a ${params.r_primer}\$ \\
+        -a 'A{10}' -a 'G{10}' \\
+        -o ${meta.id}_trimmed.fastq.gz \\
+        ${reads}
+
+    count=\$(zcat ${meta.id}_trimmed.fastq.gz | awk 'END{print NR/4}')
+    printf 'sample\\tcount\\n%s\\t%s\\n' "${meta.id}" "\$count" > ${meta.id}.cutadapt.counts.tsv
     """
 }
