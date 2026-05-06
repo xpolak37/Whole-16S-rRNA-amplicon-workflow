@@ -159,14 +159,17 @@ workflow {
     // ============================================================
     ch_oriented_pool = VSEARCH_ORIENT.out.reads.map { meta, fq -> fq }.collect()
 
-    ch_asv = Channel.empty()
+    ch_asv             = Channel.empty()
+    ch_denoiser_counts = Channel.empty()
     if ('dada2' in denoisers) {
         DADA2_PACBIO(ch_oriented_pool)
-        ch_asv = ch_asv.mix(DADA2_PACBIO.out.asv)
+        ch_asv             = ch_asv.mix(DADA2_PACBIO.out.asv)
+        ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO.out.counts)
     }
     if ('dada2_nodenoise' in denoisers) {
         DADA2_PACBIO_NODENOISE(ch_oriented_pool)
-        ch_asv = ch_asv.mix(DADA2_PACBIO_NODENOISE.out.asv)
+        ch_asv             = ch_asv.mix(DADA2_PACBIO_NODENOISE.out.asv)
+        ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO_NODENOISE.out.counts)
     }
 
     // ============================================================
@@ -184,6 +187,7 @@ workflow {
         .mix(HOST_REMOVAL.out.counts)
         .mix(PHIX_REMOVAL.out.counts)
         .mix(VSEARCH_ORIENT.out.counts)
+        .mix(ch_denoiser_counts)
         .collect()
     COLLATE_COUNTS(ch_all_counts)
 
