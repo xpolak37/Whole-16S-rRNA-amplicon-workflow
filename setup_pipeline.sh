@@ -123,8 +123,11 @@ declare -A CONTAINERS=(
     ["qiime2-2026.1.img"]="docker://quay.io/qiime2/amplicon:2026.1"
     ["fastqc-0.12.1.img"]="docker://quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0"
     ["multiqc-1.21.img"]="docker://quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0"
-    ["lima-2.9.0.img"]="docker://quay.io/biocontainers/lima:2.9.0--h9ee0642_0"
+    ["lima-2.12.0.img"]="docker://quay.io/biocontainers/lima:2.12.0--h9ee0642_1"
     ["pandas-2.2.1.img"]="docker://quay.io/biocontainers/pandas:2.2.1"
+    ["seaborn-0.13.2.img"]="docker://quay.io/biocontainers/seaborn:0.13.2"
+    ["seqtk-1.4.img"]="docker://quay.io/biocontainers/seqtk:1.4--he4a0461_2"
+    ["pbtk-3.5.0.img"]="docker://quay.io/biocontainers/pbtk:3.5.0--h9ee0642_0"
     ["blast-2.15.0.img"]="docker://quay.io/biocontainers/blast:2.15.0--pl5321h6f7f691_1"
     ["entrez-direct-24.0.img"]="docker://quay.io/biocontainers/entrez-direct:24.0--he881be0_0"
 )
