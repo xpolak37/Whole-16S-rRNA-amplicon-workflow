@@ -254,7 +254,7 @@ export NUMBA_CACHE_DIR="$PWD/numba_cache"
 export TMPDIR="$PWD/tmp"
 mkdir -p "$NUMBA_CACHE_DIR" "$TMPDIR"
 
-# Mirrors taxonomy/building_classifier.sh, with SILVA 138.2.
+# Mirrors bin/extract_silva.sh, with SILVA 138.2.
 if [ ! -s silva-138.2-ssu-nr99-rna-seqs.qza ]; then
     qiime rescript get-silva-data \
         --p-version '138.2' \
