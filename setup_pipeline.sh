@@ -92,8 +92,12 @@ PHIX_DIR="${INSTALL_DIR}/phix"
 ORIENT_DIR="${INSTALL_DIR}/silva_orient"
 BLAST_DB_DIR="${INSTALL_DIR}/blast_db"
 LOG_DIR="${INSTALL_DIR}/logs"
+# SIF -> sandbox extraction scratch. /tmp is often a small tmpfs that fills up
+# during HOST_REMOVAL (the hostile image is the chunkiest), so we point
+# Singularity at the install partition instead.
+TMP_DIR="${INSTALL_DIR}/tmp"
 
-mkdir -p "$SING_DIR" "$CLASSIFIERS_DIR" "$HOSTILE_DIR" "$PHIX_DIR" "$ORIENT_DIR" "$BLAST_DB_DIR" "$LOG_DIR"
+mkdir -p "$SING_DIR" "$CLASSIFIERS_DIR" "$HOSTILE_DIR" "$PHIX_DIR" "$ORIENT_DIR" "$BLAST_DB_DIR" "$LOG_DIR" "$TMP_DIR"
 
 LOGFILE="${LOG_DIR}/setup_$(date +%Y%m%d_%H%M%S).log"
 touch "$LOGFILE"
@@ -435,6 +439,12 @@ echo -e "${GREEN}===============================================================
 echo ""
 echo "Resources at: ${INSTALL_DIR}"
 echo "Config file : ${CONFIG_FILE}"
+echo ""
+echo "Before each pipeline run, redirect Singularity's SIF-extraction scratch"
+echo "to the install partition (host /tmp is usually a small tmpfs that fills"
+echo "up during HOST_REMOVAL):"
+echo "  export SINGULARITY_TMPDIR=${TMP_DIR}"
+echo "  export APPTAINER_TMPDIR=${TMP_DIR}"
 echo ""
 echo "Smoke test (one denoiser × one classifier, no qiime/blast):"
 echo "  nextflow run main.nf -c ${CONFIG_FILE} \\"

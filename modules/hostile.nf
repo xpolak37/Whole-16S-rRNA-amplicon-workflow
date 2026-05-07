@@ -13,6 +13,11 @@ process HOST_REMOVAL {
 
     script:
     """
+    # hostile's aligner module mkdir's \$XDG_DATA_HOME/hostile at import time.
+    # Singularity --no-home leaves \$HOME pointing at a read-only path, so
+    # redirect HOME to the writable Nextflow work dir.
+    export HOME=\$PWD
+
     hostile clean \\
         --fastq1 ${reads} \\
         --index ${params.hostile_index_dir}/human-t2t-hla-argos985-mycob140.mmi \\
@@ -40,6 +45,8 @@ process PHIX_REMOVAL {
 
     script:
     """
+    export HOME=\$PWD
+
     hostile clean \\
         --fastq1 ${reads} \\
         --index ${params.phix_fasta} \\
