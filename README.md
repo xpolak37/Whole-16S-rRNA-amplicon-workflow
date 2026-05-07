@@ -136,7 +136,7 @@ The reference-data parameters are declared in `nextflow.config` as `null` sentin
 | `singularity_cache_dir` | Singularity image cache (defaults to `./singularity_cache`; rarely needs changing) |
 | `classifiers_dir` | Directory containing all four classifier artefacts (see below) |
 | `hostile_index_dir` | Directory containing the hostile human index files (`human-t2t-hla-argos985-mycob140.fa.gz` and `.mmi`) |
-| `phix_fasta` | PhiX174 FASTA used for the second hostile pass |
+| `phix_index` | PhiX174 minimap2 index (`.mmi`) used for the second hostile pass |
 | `silva_orient_db` | Primer-anchored SILVA reference for `vsearch --orient` |
 | `blast_db_dir` | Local 16S BLAST DB dir (only needed if `--custom_summary_blast` is on) |
 
@@ -146,7 +146,7 @@ The reference-data parameters are declared in `nextflow.config` as `null` sentin
 params {
     classifiers_dir   = '/path/to/install/classifiers'
     hostile_index_dir = '/path/to/install/hostile_index'
-    phix_fasta        = '/path/to/install/phix/phiX174.fasta'
+    phix_index        = '/path/to/install/phix/phiX174.mmi'
     silva_orient_db   = '/path/to/install/silva_orient/silva-27F-1492R-orient.fasta'
     blast_db_dir      = '/path/to/install/blast_db'
 }
@@ -160,7 +160,7 @@ nextflow run main.nf \
     --outdir results \
     --classifiers_dir   /path/to/install/classifiers \
     --hostile_index_dir /path/to/install/hostile_index \
-    --phix_fasta        /path/to/install/phix/phiX174.fasta \
+    --phix_index        /path/to/install/phix/phiX174.mmi \
     --silva_orient_db   /path/to/install/silva_orient/silva-27F-1492R-orient.fasta \
     --blast_db_dir      /path/to/install/blast_db
 ```

@@ -160,8 +160,10 @@ echo ""
 log_info "=== STEP 2 — PhiX174 fasta ==="
 
 PHIX_FASTA="${PHIX_DIR}/phiX174.fasta"
+PHIX_MMI="${PHIX_DIR}/phiX174.mmi"
+
 if [ -s "$PHIX_FASTA" ]; then
-    log_warn "$PHIX_FASTA already present — skipping"
+    log_warn "$PHIX_FASTA already present — skipping fetch"
 else
     log_info "Fetching NC_001422.1 via entrez-direct..."
     singularity exec --bind "${PHIX_DIR}:${PHIX_DIR}" --pwd "${PHIX_DIR}" \
@@ -170,6 +172,22 @@ else
         >> "$LOGFILE" 2>&1
     [ -s "$PHIX_FASTA" ] || { log_error "PhiX fetch failed"; exit 1; }
     log_success "PhiX174 fasta downloaded"
+fi
+
+# Pre-build the minimap2 index. Hostile in long-read mode requires .mmi —
+# passing the fasta directly fails with "neither a valid custom index path
+# nor a valid standard index name".
+if [ -s "$PHIX_MMI" ]; then
+    log_warn "$PHIX_MMI already present — skipping index build"
+else
+    log_info "Building PhiX minimap2 index..."
+    singularity exec --bind "${PHIX_DIR}:${PHIX_DIR}" --pwd "${PHIX_DIR}" \
+        "${SING_DIR}/quay.io-biocontainers-hostile-1.1.0--pyhdfd78af_0.img" \
+        minimap2 -x map-ont -d "$PHIX_MMI" "$PHIX_FASTA" \
+        >> "$LOGFILE" 2>&1 \
+        || { log_error "PhiX minimap2 index build failed"; exit 1; }
+    [ -s "$PHIX_MMI" ] || { log_error "PhiX .mmi missing after build"; exit 1; }
+    log_success "PhiX minimap2 index ready"
 fi
 
 #-------------------------------------------------------------------------------
@@ -421,7 +439,7 @@ cat > "$CONFIG_FILE" <<EOF
 params {
     singularity_cache_dir   = '${SING_DIR}'
     hostile_index_dir       = '${HOSTILE_DIR}'
-    phix_fasta              = '${PHIX_FASTA}'
+    phix_index              = '${PHIX_MMI}'
     silva_orient_db         = '${ORIENT_FA}'
     classifiers_dir         = '${CLASSIFIERS_DIR}'
     blast_db_dir            = '${BLAST_DB_DIR}'

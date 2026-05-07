@@ -84,7 +84,7 @@ def helpMessage() {
 
     References (required at runtime by the relevant stages):
       --hostile_index_dir  hostile human index directory
-      --phix_fasta         PhiX174 FASTA
+      --phix_index         PhiX174 minimap2 index (.mmi)
       --silva_orient_db    Primer-anchored SILVA DB (vsearch --orient)
       --classifiers_dir    Directory with classifier reference files
 

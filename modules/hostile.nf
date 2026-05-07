@@ -49,7 +49,7 @@ process PHIX_REMOVAL {
 
     hostile clean \\
         --fastq1 ${reads} \\
-        --index ${params.phix_fasta} \\
+        --index ${params.phix_index} \\
         --out-dir . \\
         --threads ${task.cpus}
 
