@@ -129,17 +129,40 @@ cd Whole-16S-rRNA-amplicon-workflow
 bash setup_pipeline.sh
 ```
 
-Open `nextflow.config` and update the following parameters to match your install location:
+The reference-data parameters are declared in `nextflow.config` as `null` sentinels — they have to be set before any run that exercises the corresponding stage. You can either edit `nextflow.config` directly or pass them on the command line.
+
+| Param | What it is |
+|---|---|
+| `singularity_cache_dir` | Singularity image cache (defaults to `./singularity_cache`; rarely needs changing) |
+| `classifiers_dir` | Directory containing all four classifier artefacts (see below) |
+| `hostile_index_dir` | hostile human index directory (`human-t2t-hla-argos985-mycob140`) |
+| `phix_fasta` | PhiX174 FASTA used for the second hostile pass |
+| `silva_orient_db` | Primer-anchored SILVA reference for `vsearch --orient` |
+| `blast_db_dir` | Local 16S BLAST DB dir (only needed if `--custom_summary_blast` is on) |
+
+**Option A — edit `nextflow.config`** (replace each `null` with your path):
 
 ```groovy
 params {
-    singularity_cache_dir = '</path/to/your/installation/directory>/singularity_cache'
-    classifiers_dir       = '</path/to/your/installation/directory>/classifiers'
-    hostile_index_dir     = '</path/to/your/installation/directory>/hostile_index'
-    phix_fasta            = '</path/to/your/installation/directory>/bowtie_phix/phix.fasta'
-    silva_orient_db       = '</path/to/your/installation/directory>/classifiers/silva_27F-1492R_oriented.fasta'
-    blast_db_dir          = '</path/to/your/installation/directory>/blast_db'
+    classifiers_dir   = '/path/to/install/classifiers'
+    hostile_index_dir = '/path/to/install/hostile_index'
+    phix_fasta        = '/path/to/install/bowtie_phix/phix.fasta'
+    silva_orient_db   = '/path/to/install/classifiers/silva_27F-1492R_oriented.fasta'
+    blast_db_dir      = '/path/to/install/blast_db'
 }
+```
+
+**Option B — pass on the command line** (overrides whatever's in the config):
+
+```bash
+nextflow run main.nf \
+    --input samplesheet.csv \
+    --outdir results \
+    --classifiers_dir   /path/to/install/classifiers \
+    --hostile_index_dir /path/to/install/hostile_index \
+    --phix_fasta        /path/to/install/bowtie_phix/phix.fasta \
+    --silva_orient_db   /path/to/install/classifiers/silva_27F-1492R_oriented.fasta \
+    --blast_db_dir      /path/to/install/blast_db
 ```
 
 `classifiers_dir` must contain the four classifier artefacts:
