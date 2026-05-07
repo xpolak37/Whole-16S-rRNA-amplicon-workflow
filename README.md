@@ -88,10 +88,10 @@ nextflow run main.nf \
 After running `setup_pipeline.sh`, a tiny test dataset lives in `test/`. You can smoke-test the full workflow with:
 
 ```bash
-nextflow run main.nf --input test/samplesheet.csv --outdir results --all
+nextflow run main.nf --input test/samplesheet.csv --outdir results --all --quick
 ```
 
-`--all` runs every denoiser × classifier combination.
+`--all` runs every denoiser × classifier combination; `--quick` subsamples reads first so the whole run finishes in minutes.
 
 **Quick mode (subsampling)**
 
@@ -121,7 +121,7 @@ conda activate </path/to/your/new/nf-env/>
 conda install conda-forge::singularity
 ```
 
-Then clone the pipeline and run the setup script. It will interactively ask for an installation directory, where it creates `classifiers/` (reference databases), `singularity_cache/` (container images) and `bowtie_phix/` (hostile PhiX index):
+Then clone the pipeline and run the setup script. It will interactively ask for an installation directory, where it creates `classifiers/` (reference databases), `singularity_cache/` (container images), `hostile_index/` (human T2T+HLA index), `phix/` (PhiX174 FASTA), `silva_orient/` (primer-anchored SILVA reference), `blast_db/` (optional 16S BLAST DB), `logs/`, and `tmp/` (Singularity SIF-extraction scratch):
 
 ```bash
 git clone https://github.com/xpolak37/Whole-16S-rRNA-amplicon-workflow.git
@@ -135,7 +135,7 @@ The reference-data parameters are declared in `nextflow.config` as `null` sentin
 |---|---|
 | `singularity_cache_dir` | Singularity image cache (defaults to `./singularity_cache`; rarely needs changing) |
 | `classifiers_dir` | Directory containing all four classifier artefacts (see below) |
-| `hostile_index_dir` | hostile human index directory (`human-t2t-hla-argos985-mycob140`) |
+| `hostile_index_dir` | Directory containing the hostile human index files (`human-t2t-hla-argos985-mycob140.fa.gz` and `.mmi`) |
 | `phix_fasta` | PhiX174 FASTA used for the second hostile pass |
 | `silva_orient_db` | Primer-anchored SILVA reference for `vsearch --orient` |
 | `blast_db_dir` | Local 16S BLAST DB dir (only needed if `--custom_summary_blast` is on) |
@@ -146,8 +146,8 @@ The reference-data parameters are declared in `nextflow.config` as `null` sentin
 params {
     classifiers_dir   = '/path/to/install/classifiers'
     hostile_index_dir = '/path/to/install/hostile_index'
-    phix_fasta        = '/path/to/install/bowtie_phix/phix.fasta'
-    silva_orient_db   = '/path/to/install/classifiers/silva_27F-1492R_oriented.fasta'
+    phix_fasta        = '/path/to/install/phix/phiX174.fasta'
+    silva_orient_db   = '/path/to/install/silva_orient/silva-27F-1492R-orient.fasta'
     blast_db_dir      = '/path/to/install/blast_db'
 }
 ```
@@ -160,8 +160,8 @@ nextflow run main.nf \
     --outdir results \
     --classifiers_dir   /path/to/install/classifiers \
     --hostile_index_dir /path/to/install/hostile_index \
-    --phix_fasta        /path/to/install/bowtie_phix/phix.fasta \
-    --silva_orient_db   /path/to/install/classifiers/silva_27F-1492R_oriented.fasta \
+    --phix_fasta        /path/to/install/phix/phiX174.fasta \
+    --silva_orient_db   /path/to/install/silva_orient/silva-27F-1492R-orient.fasta \
     --blast_db_dir      /path/to/install/blast_db
 ```
 
@@ -311,7 +311,7 @@ The pipeline is a modular Nextflow DSL2 workflow with one process per logical st
     When `--mock_evaluation` is set, samples whose IDs match `--mock_pattern` are scored against the bundled reference composition (Bray-Curtis dissimilarity, Pearson correlation, RMSE) and a side-by-side reference-vs-observed barplot is rendered for every (denoiser × classifier) pair.
 
 11. **Read-count ledger**
-    A `pipeline_info/counts.tsv` ledger is collated across stages so you can see how many reads survive each step per sample.
+    A `pipeline_info/read_counts_summary.tsv` ledger is collated across stages so you can see how many reads survive each step per sample.
 
 ### Key features
 
@@ -396,10 +396,11 @@ results
 ├── multiqc/
 ├── custom_summary/
 │   ├── custom_summary.html
-│   ├── raw_custom_summary.txt
+│   ├── parsed.json
+│   ├── top_seqs.fasta
 │   └── blast_hits.tsv
 └── pipeline_info/
-    └── counts.tsv              # per-stage read-count ledger
+    └── read_counts_summary.tsv # per-stage read-count ledger
 ```
 
 **Output descriptions**
@@ -418,8 +419,8 @@ results
 | `metastandard/<denoiser>/<classifier>/` | Unified TSV + barplot + heatmap | Standardised cross-run table per combination |
 | `mock_evaluation/<denoiser>/<classifier>/` | Reference-vs-observed barplot, metrics, composition | Per-combination mock community evaluation |
 | `multiqc/` | MultiQC HTML + JSON | Aggregated FastQC across raw and trimmed reads |
-| `custom_summary/` | HTML + TXT + BLAST hits TSV | Per-run quality summary with optional BLAST of overrepresented sequences |
-| `pipeline_info/` | `counts.tsv` ledger | Per-stage surviving read counts per sample |
+| `custom_summary/` | HTML report + parsed JSON + top sequences FASTA + BLAST hits TSV | Per-run quality summary with optional BLAST of overrepresented sequences |
+| `pipeline_info/` | `read_counts_summary.tsv` ledger | Per-stage surviving read counts per sample |
 
 ---
 

@@ -118,22 +118,25 @@ log_success "Host tools OK"
 echo ""
 log_info "=== STEP 1 — Pulling Singularity containers ==="
 
+# Filenames must match Nextflow's auto-generated cache name
+# (docker URI with `://` and `/` replaced by `-`, plus `.img`),
+# otherwise Nextflow re-pulls each container at runtime.
 declare -A CONTAINERS=(
-    ["cutadapt-4.6.img"]="docker://quay.io/biocontainers/cutadapt:4.6--py39hf95cd2a_1"
-    ["hostile-1.1.0.img"]="docker://quay.io/biocontainers/hostile:1.1.0--pyhdfd78af_0"
-    ["vsearch-2.27.0.img"]="docker://quay.io/biocontainers/vsearch:2.27.0--h6a68c12_1"
-    ["dada2-1.38.0.img"]="docker://quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
-    ["decipher-3.6.0.img"]="docker://quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0"
-    ["qiime2-2026.1.img"]="docker://quay.io/qiime2/amplicon:2026.1"
-    ["fastqc-0.12.1.img"]="docker://quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0"
-    ["multiqc-1.21.img"]="docker://quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0"
-    ["lima-2.12.0.img"]="docker://quay.io/biocontainers/lima:2.12.0--h9ee0642_1"
-    ["pandas-2.2.1.img"]="docker://quay.io/biocontainers/pandas:2.2.1"
-    ["seaborn-0.13.2.img"]="docker://quay.io/biocontainers/seaborn:0.13.2"
-    ["seqtk-1.4.img"]="docker://quay.io/biocontainers/seqtk:1.4--he4a0461_2"
-    ["pbtk-3.5.0.img"]="docker://quay.io/biocontainers/pbtk:3.5.0--h9ee0642_0"
-    ["blast-2.15.0.img"]="docker://quay.io/biocontainers/blast:2.15.0--pl5321h6f7f691_1"
-    ["entrez-direct-24.0.img"]="docker://quay.io/biocontainers/entrez-direct:24.0--he881be0_0"
+    ["quay.io-biocontainers-cutadapt-4.6--py39hf95cd2a_1.img"]="docker://quay.io/biocontainers/cutadapt:4.6--py39hf95cd2a_1"
+    ["quay.io-biocontainers-hostile-1.1.0--pyhdfd78af_0.img"]="docker://quay.io/biocontainers/hostile:1.1.0--pyhdfd78af_0"
+    ["quay.io-biocontainers-vsearch-2.27.0--h6a68c12_1.img"]="docker://quay.io/biocontainers/vsearch:2.27.0--h6a68c12_1"
+    ["quay.io-biocontainers-bioconductor-dada2-1.38.0--r45ha27e39d_0.img"]="docker://quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0"
+    ["quay.io-biocontainers-bioconductor-decipher-3.6.0--r45h01b2380_0.img"]="docker://quay.io/biocontainers/bioconductor-decipher:3.6.0--r45h01b2380_0"
+    ["quay.io-qiime2-amplicon-2026.1.img"]="docker://quay.io/qiime2/amplicon:2026.1"
+    ["quay.io-biocontainers-fastqc-0.12.1--hdfd78af_0.img"]="docker://quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0"
+    ["quay.io-biocontainers-multiqc-1.21--pyhdfd78af_0.img"]="docker://quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0"
+    ["quay.io-biocontainers-lima-2.12.0--h9ee0642_1.img"]="docker://quay.io/biocontainers/lima:2.12.0--h9ee0642_1"
+    ["quay.io-biocontainers-pandas-2.2.1.img"]="docker://quay.io/biocontainers/pandas:2.2.1"
+    ["quay.io-biocontainers-seaborn-0.13.2.img"]="docker://quay.io/biocontainers/seaborn:0.13.2"
+    ["quay.io-biocontainers-seqtk-1.4--he4a0461_2.img"]="docker://quay.io/biocontainers/seqtk:1.4--he4a0461_2"
+    ["quay.io-biocontainers-pbtk-3.5.0--h9ee0642_0.img"]="docker://quay.io/biocontainers/pbtk:3.5.0--h9ee0642_0"
+    ["quay.io-biocontainers-blast-2.15.0--pl5321h6f7f691_1.img"]="docker://quay.io/biocontainers/blast:2.15.0--pl5321h6f7f691_1"
+    ["quay.io-biocontainers-entrez-direct-24.0--he881be0_0.img"]="docker://quay.io/biocontainers/entrez-direct:24.0--he881be0_0"
 )
 
 cd "$SING_DIR"
@@ -162,7 +165,7 @@ if [ -s "$PHIX_FASTA" ]; then
 else
     log_info "Fetching NC_001422.1 via entrez-direct..."
     singularity exec --bind "${PHIX_DIR}:${PHIX_DIR}" --pwd "${PHIX_DIR}" \
-        "${SING_DIR}/entrez-direct-24.0.img" \
+        "${SING_DIR}/quay.io-biocontainers-entrez-direct-24.0--he881be0_0.img" \
         bash -c "efetch -db nucleotide -id NC_001422.1 -format fasta > ${PHIX_FASTA}" \
         >> "$LOGFILE" 2>&1
     [ -s "$PHIX_FASTA" ] || { log_error "PhiX fetch failed"; exit 1; }
@@ -191,7 +194,7 @@ else
     singularity exec --bind "${HOSTILE_DIR}:${HOSTILE_DIR}" --pwd "${HOSTILE_DIR}" \
         --env HOSTILE_CACHE_DIR="${HOSTILE_DIR}" \
         --env TMPDIR="${HOSTILE_DIR}/tmp" \
-        "${SING_DIR}/hostile-1.1.0.img" \
+        "${SING_DIR}/quay.io-biocontainers-hostile-1.1.0--pyhdfd78af_0.img" \
         hostile fetch --aligner minimap2 --name human-t2t-hla-argos985-mycob140 \
         >> "$LOGFILE" 2>&1 \
         || { log_error "hostile fetch failed"; exit 1; }
@@ -207,7 +210,7 @@ else
     log_info "Pre-building minimap2 index (~5-10 min, output ~14 GB)..."
     singularity exec --bind "${HOSTILE_DIR}:${HOSTILE_DIR}" --pwd "${HOSTILE_DIR}" \
         --env TMPDIR="${HOSTILE_DIR}/tmp" \
-        "${SING_DIR}/hostile-1.1.0.img" \
+        "${SING_DIR}/quay.io-biocontainers-hostile-1.1.0--pyhdfd78af_0.img" \
         minimap2 -x map-ont -d "$HOSTILE_MMI" "$HOSTILE_FA" \
         >> "$LOGFILE" 2>&1 \
         || { log_error "minimap2 index build failed"; exit 1; }
@@ -338,7 +341,7 @@ QBUILD
     chmod +x "${QBUILD_DIR}/build.sh"
 
     singularity exec --bind "${INSTALL_DIR}:${INSTALL_DIR}" --pwd "${QBUILD_DIR}" \
-        "${SING_DIR}/qiime2-2026.1.img" bash "${QBUILD_DIR}/build.sh" \
+        "${SING_DIR}/quay.io-qiime2-amplicon-2026.1.img" bash "${QBUILD_DIR}/build.sh" \
         2>&1 | tee -a "$LOGFILE"
 
     cp "${QBUILD_DIR}/qnb_classifier.qza"        "$QNB_QZA"
@@ -371,7 +374,7 @@ else
 
     log_info "Renaming variable trainingSet -> trainingSet_custom for bin/idtaxa.R compatibility..."
     singularity exec --bind "${CLASSIFIERS_DIR}:${CLASSIFIERS_DIR}" --pwd "${CLASSIFIERS_DIR}" \
-        "${SING_DIR}/decipher-3.6.0.img" \
+        "${SING_DIR}/quay.io-biocontainers-bioconductor-decipher-3.6.0--r45h01b2380_0.img" \
         Rscript -e "load('${raw}'); \
                     if (!exists('trainingSet_custom')) trainingSet_custom <- trainingSet; \
                     save(trainingSet_custom, file='${IDTAXA_RDATA}')" \
@@ -395,7 +398,7 @@ else
         mkdir -p "${BLAST_DB_DIR}/tmp"
         singularity exec --bind "${BLAST_DB_DIR}:${BLAST_DB_DIR}" --pwd "${BLAST_DB_DIR}" \
             --env TMPDIR="${BLAST_DB_DIR}/tmp" \
-            "${SING_DIR}/blast-2.15.0.img" \
+            "${SING_DIR}/quay.io-biocontainers-blast-2.15.0--pl5321h6f7f691_1.img" \
             update_blastdb.pl --decompress 16S_ribosomal_RNA \
             >> "$LOGFILE" 2>&1 \
             || log_warn "BLAST DB download failed (non-fatal)"
