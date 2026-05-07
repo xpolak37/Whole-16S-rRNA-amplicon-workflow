@@ -414,7 +414,8 @@ params {
     phix_fasta              = '${PHIX_FASTA}'
     silva_orient_db         = '${ORIENT_FA}'
     classifiers_dir         = '${CLASSIFIERS_DIR}'
-    custom_summary_blast_db = '${BLAST_DB_DIR}/16S_ribosomal_RNA'
+    blast_db_dir            = '${BLAST_DB_DIR}'
+    custom_summary_blast_db = '16S_ribosomal_RNA'
 }
 EOF
 log_success "Config: $CONFIG_FILE"
