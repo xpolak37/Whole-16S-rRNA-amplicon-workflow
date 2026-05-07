@@ -41,10 +41,19 @@ colnames(asv_tax_df) <- ranks[seq_len(ncol(asv_tax_df))]
 rownames(asv_tax_df) <- as.character(dna)
 asv_tax_df <- tibble::rownames_to_column(asv_tax_df, "SeqID")
 
+# Taxonomy column = prefix-joined string for downstream MetaStandard
+prefixes <- c("d__", "p__", "c__", "o__", "f__", "g__", "s__")
+rank_cols <- intersect(ranks, colnames(asv_tax_df))
+asv_tax_df$Taxonomy <- apply(asv_tax_df[, rank_cols, drop = FALSE], 1, function(row) {
+    keep <- row[row != "unassigned"]
+    if (length(keep) == 0) return("")
+    paste(paste0(prefixes[seq_along(keep)], keep), collapse = ";")
+})
+
 confidence_df <- sapply(tax_info, function(x) min(x$confidence))
 
 asv_tax_conf_df <- asv_tax_df
-asv_tax_conf_df$confidence <- confidence_df
+asv_tax_conf_df$Confidence <- confidence_df
 
 write.table(asv_tax_df,      file = out_taxa_tsv,
             sep = "\t", row.names = FALSE, quote = FALSE)

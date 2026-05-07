@@ -23,6 +23,10 @@ include { HOST_REMOVAL; PHIX_REMOVAL } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
 include { DADA2_PACBIO; DADA2_PACBIO_NODENOISE } from './modules/dada2'
 include { QIIME_NAIVE_BAYES; QIIME_BLAST; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
+include { METASTANDARD }              from './modules/MetaStandard16S'
+include { METASTANDARD_PLOTS }        from './modules/metastandard_plots'
+include { MOCK_EVALUATION }           from './modules/mock_evaluation'
+include { SEQTK_SUBSAMPLE }           from './modules/seqtk_subsample'
 include { COLLATE_COUNTS }            from './modules/pipeline_info'
 
 // ============================================================
@@ -58,6 +62,21 @@ def helpMessage() {
       --denoiser           Comma list: dada2,dada2_nodenoise           (default: dada2)
       --classifiers        Comma list: qnb,qblast,idtaxa,assigntaxonomy (default: all four)
       --all                Run every denoiser × classifier combination
+      --quick              Subsample reads to --quick_depth before FastQC (smoke test)
+      --quick_depth        Reads per sample under --quick               (default: ${params.quick_depth})
+
+    MetaStandard (cross-run unification + plots):
+      --run_id             Run label baked into output filenames       (default: ${params.run_id})
+      --tax_level          domain|phylum|...|species|asv               (default: ${params.tax_level})
+      --metastandard_top_n Top-N taxa for stacked barplot              (default: ${params.metastandard_top_n})
+
+    Mock community evaluation (off unless mock samples are present):
+      --mock_evaluation    Enable mock evaluation                       (default: ${params.mock_evaluation})
+      --mock_pattern       Regex matching mock sample IDs               (default: ${params.mock_pattern})
+      --mock_top_n         Top-N genera in mock barplot                 (default: ${params.mock_top_n})
+      --mock_abundance     Reference abundance CSV                      (default: bundled)
+      --mock_taxa          Reference taxonomy CSV                       (default: bundled)
+      --mock_synonyms      Genus synonym CSV                            (default: bundled)
 
     References (required at runtime by the relevant stages):
       --hostile_index_dir  hostile human index directory
@@ -145,6 +164,14 @@ workflow {
     }
 
     // ============================================================
+    // Optional --quick subsample (smoke-test mode; subsamples before FastQC)
+    // ============================================================
+    if (params.quick) {
+        SEQTK_SUBSAMPLE(ch_reads)
+        ch_reads = SEQTK_SUBSAMPLE.out.reads
+    }
+
+    // ============================================================
     // Per-sample QC + preprocessing
     // ============================================================
     FASTQC_RAW(ch_reads)
@@ -175,10 +202,43 @@ workflow {
     // ============================================================
     // Classifier axis (Cartesian: each enabled classifier consumes ch_asv)
     // ============================================================
-    if ('qnb' in classifiers)            QIIME_NAIVE_BAYES(ch_asv)
-    if ('qblast' in classifiers)         QIIME_BLAST(ch_asv)
-    if ('idtaxa' in classifiers)         IDTAXA(ch_asv)
-    if ('assigntaxonomy' in classifiers) ASSIGNTAXONOMY(ch_asv)
+    ch_taxa = Channel.empty()
+    if ('qnb' in classifiers) {
+        QIIME_NAIVE_BAYES(ch_asv)
+        ch_taxa = ch_taxa.mix(QIIME_NAIVE_BAYES.out.taxa)
+    }
+    if ('qblast' in classifiers) {
+        QIIME_BLAST(ch_asv)
+        ch_taxa = ch_taxa.mix(QIIME_BLAST.out.taxa)
+    }
+    if ('idtaxa' in classifiers) {
+        IDTAXA(ch_asv)
+        // IDTAXA emits an extra confidence-table path; drop it for MetaStandard
+        ch_taxa = ch_taxa.mix(IDTAXA.out.taxa.map { d, c, t, conf -> tuple(d, c, t) })
+    }
+    if ('assigntaxonomy' in classifiers) {
+        ASSIGNTAXONOMY(ch_asv)
+        ch_taxa = ch_taxa.mix(ASSIGNTAXONOMY.out.taxa)
+    }
+
+    // ============================================================
+    // MetaStandard: per (denoiser × classifier) unify ASV + taxa,
+    // then plot. Mock evaluation runs against each MetaStandard TSV
+    // when --mock_evaluation is set.
+    // ============================================================
+    ch_asv_keyed = ch_asv.map { d, asv, fa -> tuple(d, asv) }
+    ch_meta_in   = ch_taxa.combine(ch_asv_keyed, by: 0)
+        .map { d, c, t, asv -> tuple(d, c, t, asv) }
+    METASTANDARD(ch_meta_in)
+    METASTANDARD_PLOTS(METASTANDARD.out.tsv)
+
+    if (params.mock_evaluation) {
+        ch_mock_abundance = Channel.value(file(params.mock_abundance, checkIfExists: true))
+        ch_mock_taxa      = Channel.value(file(params.mock_taxa,      checkIfExists: true))
+        ch_mock_synonyms  = Channel.value(file(params.mock_synonyms,  checkIfExists: true))
+        MOCK_EVALUATION(METASTANDARD.out.tsv,
+                        ch_mock_abundance, ch_mock_taxa, ch_mock_synonyms)
+    }
 
     // ============================================================
     // Counts collation, MultiQC, custom summary
