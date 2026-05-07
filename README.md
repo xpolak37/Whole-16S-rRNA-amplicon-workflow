@@ -121,7 +121,7 @@ conda activate </path/to/your/new/nf-env/>
 conda install conda-forge::singularity
 ```
 
-Then clone the pipeline and run the setup script. It will interactively ask for an installation directory, where it creates `classifiers/` (reference databases), `singularity_cache/` (container images), `hostile_index/` (human T2T+HLA index), `phix/` (PhiX174 FASTA), `silva_orient/` (primer-anchored SILVA reference), `blast_db/` (optional 16S BLAST DB), `logs/`, and `tmp/` (Singularity SIF-extraction scratch):
+Then clone the pipeline and run the setup script. It will interactively ask for an installation directory, where it creates `classifiers/` (reference databases), `singularity_cache/` (container images), `hostile_index/` (human T2T+HLA index), `phix/` (PhiX174 FASTA + minimap2 index), `silva_orient/` (primer-anchored SILVA reference), `blast_db/` (optional 16S BLAST DB), `logs/`, and `tmp/` (Singularity SIF-extraction scratch):
 
 ```bash
 git clone https://github.com/xpolak37/Whole-16S-rRNA-amplicon-workflow.git
