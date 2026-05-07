@@ -348,7 +348,11 @@ echo ""
 log_info "=== STEP 6 — IDTAXA training set (.RData) ==="
 
 IDTAXA_RDATA="${CLASSIFIERS_DIR}/idtaxa.RData"
-IDTAXA_URL="${IDTAXA_URL:-http://www2.decipher.codes/Classification/TrainingSets/SILVA_SSU_r138_2024.RData}"
+# DECIPHER retired the direct-download links on www2.decipher.codes in 2025
+# and now hosts SILVA_SSU_r138.2_v2.RData on Google Drive (file id below).
+# `confirm=t` bypasses the >100 MB virus-scan interstitial.
+IDTAXA_GDRIVE_ID="${IDTAXA_GDRIVE_ID:-1w3wdSCpSihntWkbP_zvXz7r3s-tNB8DV}"
+IDTAXA_URL="${IDTAXA_URL:-https://drive.usercontent.google.com/download?id=${IDTAXA_GDRIVE_ID}&export=download&confirm=t}"
 
 if [ -s "$IDTAXA_RDATA" ]; then
     log_warn "$IDTAXA_RDATA already present — skipping"
