@@ -38,8 +38,8 @@ asv_tax_df <- as.data.frame(do.call(rbind, lapply(tax_info, function(x) {
 })), stringsAsFactors = FALSE)
 
 colnames(asv_tax_df) <- ranks[seq_len(ncol(asv_tax_df))]
-rownames(asv_tax_df) <- as.character(dna)
-asv_tax_df <- tibble::rownames_to_column(asv_tax_df, "SeqID")
+asv_tax_df <- cbind(SeqID = as.character(dna), asv_tax_df)
+rownames(asv_tax_df) <- NULL
 
 # Taxonomy column = prefix-joined string for downstream MetaStandard
 prefixes <- c("d__", "p__", "c__", "o__", "f__", "g__", "s__")
