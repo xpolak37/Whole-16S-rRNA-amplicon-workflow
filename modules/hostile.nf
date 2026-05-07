@@ -21,7 +21,7 @@ process HOST_REMOVAL {
     hostile clean \\
         --fastq1 ${reads} \\
         --index ${params.hostile_index_dir}/human-t2t-hla-argos985-mycob140.mmi \\
-        --output . \\
+        --out-dir . \\
         --threads ${task.cpus}
 
     out=\$(ls *.clean.fastq.gz | head -n1)
@@ -50,7 +50,7 @@ process PHIX_REMOVAL {
     hostile clean \\
         --fastq1 ${reads} \\
         --index ${params.phix_fasta} \\
-        --output . \\
+        --out-dir . \\
         --threads ${task.cpus}
 
     # hostile appends .clean → reads is *.clean.fastq.gz, output is *.clean.clean.fastq.gz.
