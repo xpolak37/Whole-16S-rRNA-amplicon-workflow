@@ -311,15 +311,16 @@ A CSV with the following columns:
 | Column | Description |
 |--------|-------------|
 | `sample` | Unique sample identifier (no whitespace) |
-| `fastq`  | Absolute or relative path to the per-sample FASTQ (gz allowed) |
+| `fastq`  | Absolute or relative path to the per-sample reads file. Accepts `.fastq[.gz]`, `.fq[.gz]` or per-sample PacBio HiFi `.bam`. BAMs are auto-converted to fastq via `pbtk bam2fastq` (and indexed with `pbindex` if needed). The two formats can be mixed in a single samplesheet. |
 
-Example `samplesheet.csv`:
+Example `samplesheet.csv` mixing both formats:
 
 ```csv
 sample,fastq
 sample1,/path/to/sample1.fastq.gz
 sample2,/path/to/sample2.fastq.gz
-sample3,/path/to/sample3.fastq.gz
+bc21,/path/to/bc21.bam
+bc22,/path/to/bc22.bam
 ```
 
 **Mode 2 — non-demultiplexed BAM (`--bam` + `--barcodes`)**
@@ -339,6 +340,7 @@ The pipeline generates the following directory structure under `--outdir`:
 ```
 results
 ├── lima/                       # only in --bam mode
+├── bam2fastq/                  # only when samplesheet contains .bam paths
 ├── subsampled/                 # only in --quick mode
 ├── fastqc_raw/
 ├── fastqc_trimmed/
@@ -382,6 +384,7 @@ results
 | Directory | Contents | Description |
 |-----------|----------|-------------|
 | `lima/` | Per-sample FASTQ + lima report | Demultiplexing of raw HiFi BAM (Mode 2 only) |
+| `bam2fastq/` | Per-sample FASTQ | `pbtk bam2fastq` conversion of per-sample BAMs supplied via the samplesheet |
 | `subsampled/` | Subsampled FASTQ per sample | Reads downsampled to `--quick_depth` (only when `--quick`) |
 | `fastqc_raw/` / `fastqc_trimmed/` | FastQC HTML & ZIP | Quality metrics before and after Cutadapt |
 | `cutadapt/` | Trimmed FASTQ | Reads after primer + adapter removal |

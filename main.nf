@@ -18,6 +18,7 @@ include { FASTQC as FASTQC_TRIMMED }  from './modules/fastqc'
 include { MULTIQC }                   from './modules/multiqc'
 include { CUSTOM_SUMMARY_PARSE; CUSTOM_SUMMARY_BLAST; CUSTOM_SUMMARY_RENDER } from './modules/custom_summary'
 include { LIMA_DEMUX }                from './modules/lima'
+include { BAM2FASTQ }                 from './modules/bam2fastq'
 include { CUTADAPT }                  from './modules/cutadapt'
 include { HOST_REMOVAL; PHIX_REMOVAL } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
@@ -51,6 +52,9 @@ def helpMessage() {
 
     Mode 1 (samplesheet):
       --input              CSV with columns: sample,fastq
+                           The 'fastq' column accepts .fastq[.gz], .fq[.gz],
+                           or per-sample .bam (PacBio HiFi). BAMs are
+                           auto-converted via pbtk bam2fastq.
 
     Mode 2 (non-demuxed BAM):
       --bam                PacBio HiFi BAM
@@ -138,14 +142,18 @@ workflow {
     // Reads channel (both modes converge to [meta, fq])
     // ============================================================
     if (has_input) {
-        ch_reads = Channel.fromPath(params.input, checkIfExists: true)
+        // Samplesheet 'fastq' column accepts .fastq[.gz], .fq[.gz] or .bam
+        // (per-sample PacBio HiFi). BAMs are routed through BAM2FASTQ; the
+        // rest pass straight through and the two streams are mixed back into
+        // a single ch_reads of (meta, fastq.gz) tuples.
+        ch_input_rows = Channel.fromPath(params.input, checkIfExists: true)
             .splitCsv(header: true, sep: ',')
             .map { row ->
                 if (!row.sample || !row.fastq) error "Samplesheet row missing 'sample' or 'fastq': ${row}"
                 def sample_id = row.sample.trim()
                 if (sample_id ==~ /.*\s.*/) error "Sample id contains whitespace: '${sample_id}'"
-                def fq = file(row.fastq.trim(), checkIfExists: true)
-                tuple([id: sample_id], fq)
+                def reads = file(row.fastq.trim(), checkIfExists: true)
+                tuple([id: sample_id], reads)
             }
             .toList()
             .map { rows ->
@@ -155,6 +163,14 @@ workflow {
                 rows
             }
             .flatMap { it }
+
+        ch_input_rows.branch {
+            bam:   it[1].name.endsWith('.bam')
+            fastq: true
+        }.set { ch_branched }
+
+        BAM2FASTQ(ch_branched.bam)
+        ch_reads = BAM2FASTQ.out.reads.mix(ch_branched.fastq)
     } else {
         ch_bam      = Channel.fromPath(params.bam,      checkIfExists: true)
         ch_barcodes = Channel.fromPath(params.barcodes, checkIfExists: true)
