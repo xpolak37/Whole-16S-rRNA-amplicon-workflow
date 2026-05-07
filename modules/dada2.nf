@@ -2,6 +2,7 @@ process DADA2_PACBIO {
     tag "dada2"
     container 'quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0'
     cpus 8
+    time '24.h'
     publishDir "${params.outdir}/dada2/dada2", mode: 'copy'
 
     input:
@@ -29,6 +30,7 @@ process DADA2_PACBIO_NODENOISE {
     tag "dada2_nodenoise"
     container 'quay.io/biocontainers/bioconductor-dada2:1.38.0--r45ha27e39d_0'
     cpus 8
+    time '24.h'
     publishDir "${params.outdir}/dada2/dada2_nodenoise", mode: 'copy'
 
     input:
