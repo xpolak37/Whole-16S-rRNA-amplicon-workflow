@@ -16,8 +16,8 @@ process CUTADAPT {
         --quiet \\
         --cores ${task.cpus} \\
         --revcomp \\
-        -g ^${params.f_primer} \\
-        -a ${params.r_primer}\$ \\
+        -g ${params.f_primer} \\
+        -a ${params.r_primer} \\
         -a 'A{10}' -a 'G{10}' \\
         -o ${meta.id}_trimmed.fastq.gz \\
         ${reads}
