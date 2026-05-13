@@ -17,7 +17,6 @@
 */
 
 process CUSTOM_SUMMARY_PARSE {
-    container 'quay.io/biocontainers/pandas:2.2.1'
     publishDir "${params.outdir}/custom_summary", mode: 'copy'
 
     input:
@@ -43,11 +42,7 @@ process CUSTOM_SUMMARY_PARSE {
 }
 
 process CUSTOM_SUMMARY_BLAST {
-    container 'quay.io/biocontainers/blast:2.15.0--pl5321h6f7f691_1'
-    containerOptions "--bind ${params.blast_db_dir}"
     publishDir "${params.outdir}/custom_summary", mode: 'copy'
-    // Best-effort: never sink the run if remote BLAST flakes.
-    errorStrategy 'ignore'
 
     input:
     path top_seqs
@@ -116,7 +111,6 @@ process CUSTOM_SUMMARY_BLAST {
 }
 
 process CUSTOM_SUMMARY_RENDER {
-    container 'quay.io/biocontainers/pandas:2.2.1'
     publishDir "${params.outdir}/custom_summary", mode: 'copy'
 
     input:

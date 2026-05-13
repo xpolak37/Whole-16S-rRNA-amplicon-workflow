@@ -1,7 +1,5 @@
 process HOST_REMOVAL {
     tag "${meta.id}"
-    container 'quay.io/biocontainers/hostile:1.1.0--pyhdfd78af_0'
-    cpus 4
     publishDir "${params.outdir}/hostile", mode: 'copy'
 
     input:
@@ -32,8 +30,6 @@ process HOST_REMOVAL {
 
 process PHIX_REMOVAL {
     tag "${meta.id}"
-    container 'quay.io/biocontainers/hostile:1.1.0--pyhdfd78af_0'
-    cpus 4
     publishDir "${params.outdir}/hostile", mode: 'copy'
 
     input:

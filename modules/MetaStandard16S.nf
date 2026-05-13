@@ -1,7 +1,5 @@
 process METASTANDARD {
     tag "${denoiser}/${classifier}"
-    container 'quay.io/biocontainers/pandas:2.2.1'
-    cpus 2
     publishDir path: { "${params.outdir}/metastandard/${denoiser}/${classifier}" }, mode: 'copy'
 
     input:

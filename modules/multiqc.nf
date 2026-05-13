@@ -1,6 +1,4 @@
 process MULTIQC {
-    container 'quay.io/biocontainers/multiqc:1.21--pyhdfd78af_0'
-    cpus 2
 
     input:
     path qc_files

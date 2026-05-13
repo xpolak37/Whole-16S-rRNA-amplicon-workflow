@@ -1,5 +1,4 @@
 process COLLATE_COUNTS {
-    container 'quay.io/biocontainers/pandas:2.2.1'
 
     input:
     path counts_files

@@ -1,7 +1,5 @@
 process CUTADAPT {
     tag "${meta.id}"
-    container 'quay.io/biocontainers/cutadapt:4.6--py39hf95cd2a_1'
-    cpus 4
 
     input:
     tuple val(meta), path(reads)

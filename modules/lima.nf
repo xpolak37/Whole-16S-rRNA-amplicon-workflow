@@ -11,8 +11,6 @@
 // observed in the run, so unused entries in the kit FASTA don't produce
 // phantom output files.
 process LIMA_DEMUX {
-    container 'quay.io/biocontainers/lima:2.12.0--h9ee0642_1'
-    cpus 4
     publishDir "${params.outdir}/lima", mode: 'copy'
 
     input:

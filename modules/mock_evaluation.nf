@@ -1,7 +1,5 @@
 process MOCK_EVALUATION {
     tag "${denoiser}/${classifier}"
-    container 'quay.io/biocontainers/seaborn:0.13.2'
-    cpus 2
     publishDir path: { "${params.outdir}/mock_evaluation/${denoiser}/${classifier}" }, mode: 'copy'
 
     input:

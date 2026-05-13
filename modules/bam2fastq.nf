@@ -9,8 +9,6 @@
 // unconditionally rather than threading optional .pbi inputs through.
 process BAM2FASTQ {
     tag "${meta.id}"
-    container 'quay.io/biocontainers/pbtk:3.5.0--h9ee0642_0'
-    cpus 2
     publishDir path: { "${params.outdir}/bam2fastq" }, mode: 'copy', pattern: '*.fastq.gz'
 
     input:

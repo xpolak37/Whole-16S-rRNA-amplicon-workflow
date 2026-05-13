@@ -1,7 +1,5 @@
 process METASTANDARD_PLOTS {
     tag "${denoiser}/${classifier}"
-    container 'quay.io/biocontainers/seaborn:0.13.2'
-    cpus 2
     publishDir path: { "${params.outdir}/metastandard/${denoiser}/${classifier}" }, mode: 'copy'
 
     input:

@@ -1,7 +1,5 @@
 process SEQTK_SUBSAMPLE {
     tag "${meta.id}"
-    container 'quay.io/biocontainers/seqtk:1.4--he4a0461_2'
-    cpus 2
     publishDir path: { "${params.outdir}/subsampled" }, mode: 'copy'
 
     input:
