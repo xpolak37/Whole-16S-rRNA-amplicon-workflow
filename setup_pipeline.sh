@@ -13,7 +13,12 @@
 #   - NCBI 16S_ribosomal_RNA BLAST DB (optional, for custom_summary)
 #
 # Usage:
-#   ./setup_pipeline.sh [INSTALL_DIR]
+#   ./setup_pipeline.sh [--rewrite] [INSTALL_DIR]
+#
+# Flags:
+#   --rewrite, -r   Re-download/rebuild every artifact even if it already exists.
+#                   Default behaviour is to skip steps whose output is present;
+#                   use --rewrite for testing or to refresh stale resources.
 #
 # The script is idempotent: each step skips if its output already exists, so
 # you can Ctrl-C and re-run safely. Total first-run time is dominated by the
@@ -41,6 +46,18 @@ log_warn()    { echo -e "${YELLOW}[WARN]${NC}    $(date '+%H:%M:%S') - $1" | tee
 log_error()   { echo -e "${RED}[ERROR]${NC}   $(date '+%H:%M:%S') - $1" | tee -a "${LOGFILE:-/dev/null}"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $(date '+%H:%M:%S') - $1" | tee -a "${LOGFILE:-/dev/null}"; }
 
+# Remove the listed paths when --rewrite is in effect, so the existence check
+# in each step falls through to the build/fetch branch.
+maybe_rm() {
+    [ "${REWRITE:-0}" = "1" ] || return 0
+    for p in "$@"; do
+        if [ -e "$p" ] || [ -L "$p" ]; then
+            log_info "  --rewrite: removing $p"
+            rm -rf "$p"
+        fi
+    done
+}
+
 print_header() {
     echo -e "${BLUE}======================================================================${NC}"
     echo -e "${BLUE}  16S PacBio HiFi PIPELINE — SETUP${NC}"
@@ -60,12 +77,28 @@ check_command() {
 #-------------------------------------------------------------------------------
 print_header
 
-if [ $# -ge 1 ] && [[ "${1:-}" =~ ^(-h|--help)$ ]]; then
-    sed -n '2,30p' "$0"
-    exit 0
-fi
+REWRITE=0
+POSITIONAL_ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            sed -n '2,32p' "$0"
+            exit 0
+            ;;
+        --rewrite|-r)
+            REWRITE=1
+            ;;
+        -*)
+            log_error "Unknown flag: $arg (try --help)"
+            exit 1
+            ;;
+        *)
+            POSITIONAL_ARGS+=("$arg")
+            ;;
+    esac
+done
 
-if [ $# -eq 0 ]; then
+if [ "${#POSITIONAL_ARGS[@]}" -eq 0 ]; then
     echo -e "${YELLOW}No installation directory provided.${NC}"
     echo "Enter full path where pipeline resources will live"
     echo "(creates: classifiers/ singularity_cache/ hostile_index/ phix/ silva_orient/ blast_db/ logs/)"
@@ -73,7 +106,7 @@ if [ $# -eq 0 ]; then
     INSTALL_DIR=$(echo "$INSTALL_DIR" | xargs)
     [ -z "$INSTALL_DIR" ] && { log_error "No directory provided."; exit 1; }
 else
-    INSTALL_DIR="$1"
+    INSTALL_DIR="${POSITIONAL_ARGS[0]}"
 fi
 
 INSTALL_DIR=$(realpath -m "$INSTALL_DIR")
@@ -102,6 +135,10 @@ mkdir -p "$SING_DIR" "$CLASSIFIERS_DIR" "$HOSTILE_DIR" "$PHIX_DIR" "$ORIENT_DIR"
 LOGFILE="${LOG_DIR}/setup_$(date +%Y%m%d_%H%M%S).log"
 touch "$LOGFILE"
 log_info "Log file: ${LOGFILE}"
+
+if [ "$REWRITE" = "1" ]; then
+    log_warn "--rewrite enabled: existing artifacts will be removed and re-fetched"
+fi
 
 #-------------------------------------------------------------------------------
 # Required host tools
@@ -143,6 +180,7 @@ cd "$SING_DIR"
 n=0; total=${#CONTAINERS[@]}
 for img in "${!CONTAINERS[@]}"; do
     n=$((n+1))
+    maybe_rm "$img"
     if [ -f "$img" ]; then
         log_warn  "[$n/$total] $img already present — skipping"
     else
@@ -161,6 +199,10 @@ log_info "=== STEP 2 — PhiX174 fasta ==="
 
 PHIX_FASTA="${PHIX_DIR}/phiX174.fasta"
 PHIX_MMI="${PHIX_DIR}/phiX174.mmi"
+
+# When --rewrite is set, drop the fasta AND the .mmi; the .mmi must be rebuilt
+# from the fresh fasta.
+maybe_rm "$PHIX_FASTA" "$PHIX_MMI"
 
 if [ -s "$PHIX_FASTA" ]; then
     log_warn "$PHIX_FASTA already present — skipping fetch"
@@ -198,6 +240,10 @@ log_info "=== STEP 3 — hostile minimap2 index ==="
 
 HOSTILE_FA="${HOSTILE_DIR}/human-t2t-hla-argos985-mycob140.fa.gz"
 HOSTILE_MMI="${HOSTILE_DIR}/human-t2t-hla-argos985-mycob140.mmi"
+
+# When --rewrite is set, drop the fasta AND the .mmi; the .mmi must be rebuilt
+# from the fresh fasta.
+maybe_rm "$HOSTILE_FA" "$HOSTILE_MMI"
 
 # 3a — fetch the source fasta (hostile fetch only downloads .fa.gz; it does not
 # pre-build the .mmi).
@@ -245,6 +291,8 @@ log_info "=== STEP 4 — AssignTaxonomy SILVA training set ==="
 ASSIGNTAX_FA="${CLASSIFIERS_DIR}/silva_assigntaxonomy.fa.gz"
 ASSIGNTAX_URL="${ASSIGNTAX_URL:-https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toSpecies_trainset.fa.gz}"
 
+maybe_rm "$ASSIGNTAX_FA"
+
 if [ -s "$ASSIGNTAX_FA" ]; then
     log_warn "$ASSIGNTAX_FA already present — skipping"
 else
@@ -264,13 +312,17 @@ QNB_QZA="${CLASSIFIERS_DIR}/qnb_classifier.qza"
 QBLAST_SEQS_QZA="${CLASSIFIERS_DIR}/qblast_seqs.qza"
 QBLAST_TAX_QZA="${CLASSIFIERS_DIR}/qblast_tax.qza"
 ORIENT_FA="${ORIENT_DIR}/silva-27F-1492R-orient.fasta"
+QBUILD_DIR="${CLASSIFIERS_DIR}/_build"
+
+# Also wipe _build so its inner .qza idempotency checks don't short-circuit
+# the rebuild.
+maybe_rm "$QNB_QZA" "$QBLAST_SEQS_QZA" "$QBLAST_TAX_QZA" "$ORIENT_FA" "$QBUILD_DIR"
 
 if [ -s "$QNB_QZA" ] && [ -s "$QBLAST_SEQS_QZA" ] && [ -s "$QBLAST_TAX_QZA" ] && [ -s "$ORIENT_FA" ]; then
     log_warn "QIIME classifiers + orient fasta already present — skipping"
 else
     log_info "Running QIIME RESCRIPt build (downloads SILVA ~5 GB, runs ~1-2 h)..."
 
-    QBUILD_DIR="${CLASSIFIERS_DIR}/_build"
     mkdir -p "$QBUILD_DIR"
 
     cat > "${QBUILD_DIR}/build.sh" <<'QBUILD'
@@ -382,6 +434,8 @@ IDTAXA_RDATA="${CLASSIFIERS_DIR}/idtaxa.RData"
 IDTAXA_GDRIVE_ID="${IDTAXA_GDRIVE_ID:-1w3wdSCpSihntWkbP_zvXz7r3s-tNB8DV}"
 IDTAXA_URL="${IDTAXA_URL:-https://drive.usercontent.google.com/download?id=${IDTAXA_GDRIVE_ID}&export=download&confirm=t}"
 
+maybe_rm "$IDTAXA_RDATA"
+
 if [ -s "$IDTAXA_RDATA" ]; then
     log_warn "$IDTAXA_RDATA already present — skipping"
 else
@@ -410,6 +464,10 @@ if [ "${SKIP_BLAST_DB:-0}" = "1" ]; then
     log_warn "=== STEP 7 — BLAST 16S DB skipped (SKIP_BLAST_DB=1) ==="
 else
     log_info "=== STEP 7 — BLAST 16S DB (set SKIP_BLAST_DB=1 to skip) ==="
+    if [ "$REWRITE" = "1" ]; then
+        log_info "  --rewrite: removing existing BLAST DB files"
+        rm -f "$BLAST_DB_DIR"/16S_ribosomal_RNA.*
+    fi
     if ls "$BLAST_DB_DIR"/16S_ribosomal_RNA.n* 1>/dev/null 2>&1; then
         log_warn "BLAST DB already present — skipping"
     else
