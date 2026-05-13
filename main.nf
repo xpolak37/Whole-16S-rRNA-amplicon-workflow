@@ -68,6 +68,7 @@ def helpMessage() {
       --all                Run every denoiser × classifier combination
       --quick              Subsample reads to --quick_depth before FastQC (smoke test)
       --quick_depth        Reads per sample under --quick               (default: ${params.quick_depth})
+      --skip_phix          Skip the PhiX depletion step                  (default: ${params.skip_phix})
 
     MetaStandard (cross-run unification + plots):
       --run_id             Run label baked into output filenames       (default: ${params.run_id})
@@ -194,8 +195,17 @@ workflow {
     CUTADAPT(ch_reads)
     FASTQC_TRIMMED(CUTADAPT.out.reads)
     HOST_REMOVAL(CUTADAPT.out.reads)
-    PHIX_REMOVAL(HOST_REMOVAL.out.reads)
-    VSEARCH_ORIENT(PHIX_REMOVAL.out.reads)
+
+    // PhiX pass is optional: default on for safety, --skip_phix to bypass.
+    if (params.skip_phix) {
+        ch_after_phix  = HOST_REMOVAL.out.reads
+        ch_phix_counts = Channel.empty()
+    } else {
+        PHIX_REMOVAL(HOST_REMOVAL.out.reads)
+        ch_after_phix  = PHIX_REMOVAL.out.reads
+        ch_phix_counts = PHIX_REMOVAL.out.counts
+    }
+    VSEARCH_ORIENT(ch_after_phix)
 
     // ============================================================
     // Cohort-level: collect oriented reads, fan to denoiser axis
@@ -261,7 +271,7 @@ workflow {
     // ============================================================
     ch_all_counts = CUTADAPT.out.counts
         .mix(HOST_REMOVAL.out.counts)
-        .mix(PHIX_REMOVAL.out.counts)
+        .mix(ch_phix_counts)
         .mix(VSEARCH_ORIENT.out.counts)
         .mix(ch_denoiser_counts)
         .collect()

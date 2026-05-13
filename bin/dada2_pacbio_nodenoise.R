@@ -14,8 +14,8 @@
 #                           this threshold (default 0.001 = 0.1%)
 #
 # Outputs (cwd):
-#   ASV_table.tsv               SeqID + per-sample abundance columns
-#   ASV_sequences.fasta         >ASV_<i> headers
+#   ASV_table.tsv               SeqID (ASV_<i>) + Sequence + per-sample abundance cols
+#   ASV_sequences.fasta         >ASV_<i> headers (same order as ASV_table.tsv)
 #   track_control.tsv           SampleID, input, filtered, denoised, nonchim
 #                               (denoised here = unique-after-derep, per-sample)
 #   dada2_nodenoise.counts.tsv  sample\tcount  (count = nonchimeric reads)
@@ -46,7 +46,6 @@ if (is.null(input_dir)) stop("dada2_pacbio_nodenoise.R: --input is required")
 reads_path   <- list.files(input_dir, pattern = "-oriented\\.fq$", full.names = TRUE)
 if (length(reads_path) == 0) stop("dada2_pacbio_nodenoise.R: no *-oriented.fq files in ", input_dir)
 sample.names <- sub("-oriented\\.fq$", "", basename(reads_path))
-sample.names <- sub("_trimmed_cleaned$", "", sample.names)
 
 cat("Found", length(reads_path), "samples (no-denoise mode)\n")
 
@@ -78,17 +77,18 @@ seqtab.nochim <- removeBimeraDenovo(seqtab,
                                     minFoldParentOverAbundance = 3.5,
                                     multithread = nproc)
 
-# ---- ASV table (SeqID-keyed) ----
+# ---- ASV table (ASV_<i>-keyed, sequence preserved in Sequence column) ----
 asv_seqs <- colnames(seqtab.nochim)
+asv_ids  <- paste0("ASV_", seq_along(asv_seqs))
 final_seqtab <- as.data.frame(t(seqtab.nochim))
 rownames(final_seqtab) <- NULL
-final_seqtab <- cbind(SeqID = asv_seqs, final_seqtab)
+final_seqtab <- cbind(SeqID = asv_ids, Sequence = asv_seqs, final_seqtab)
 write.table(final_seqtab, file = "ASV_table.tsv",
             sep = "\t", quote = FALSE, row.names = FALSE)
 
-# ---- ASV fasta ----
+# ---- ASV fasta (>ASV_<i> headers, same order as ASV_table.tsv) ----
 fasta_lines <- unlist(lapply(seq_along(asv_seqs), function(i) {
-    c(paste0(">ASV_", i), asv_seqs[i])
+    c(paste0(">", asv_ids[i]), asv_seqs[i])
 }))
 writeLines(fasta_lines, "ASV_sequences.fasta")
 

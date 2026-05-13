@@ -20,7 +20,8 @@ WHAT IT DOES
 
 INPUTS
 ------
---asv_table   ASV count table (TSV). Rows are SeqIDs, columns are samples.
+--asv_table   ASV count table (TSV). Columns: SeqID (ASV_<i>), Sequence,
+              then one column per sample.
 
 --taxa_table  Taxonomy table (TSV). Must contain SeqID, Taxonomy, Confidence.
               Taxonomy uses rank-prefixed semicolon format:
@@ -47,6 +48,7 @@ import argparse
 import pandas as pd
 
 RANK_PREFIXES = ["d", "p", "c", "o", "f", "g", "s"]
+NON_SAMPLE_COLS = {"Sequence"}  # ASV-table columns that are metadata, not samples
 
 LEVEL_TO_PREFIX = {
     "domain":  "d",
@@ -151,7 +153,8 @@ def aggregate_to_level(asv_table, taxa_table, level):
     asv_indexed = asv_table.set_index("SeqID")
     merged = tax_df.join(asv_indexed, how="outer")
 
-    sample_cols = [col for col in merged.columns if col not in rank_cols]
+    sample_cols = [col for col in merged.columns
+                   if col not in rank_cols and col not in NON_SAMPLE_COLS]
 
     merged[rank_cols] = merged[rank_cols].fillna("Unclassified")
     merged[sample_cols] = merged[sample_cols].fillna(0)
@@ -176,7 +179,8 @@ def aggregate_to_asv(asv_table, taxa_table):
     asv_indexed = asv_table.set_index("SeqID")
     merged = tax_df.join(asv_indexed, how="outer")
 
-    sample_cols = [col for col in merged.columns if col not in RANK_PREFIXES]
+    sample_cols = [col for col in merged.columns
+                   if col not in RANK_PREFIXES and col not in NON_SAMPLE_COLS]
 
     merged[RANK_PREFIXES] = merged[RANK_PREFIXES].fillna("Unclassified")
     merged[sample_cols] = merged[sample_cols].fillna(0)
@@ -185,7 +189,11 @@ def aggregate_to_asv(asv_table, taxa_table):
         lambda row: ";".join([f"{p}__{row[p]}" for p in RANK_PREFIXES]),
         axis=1
     )
-    merged["TaxID"] = tax_string + "|" + merged.index
+    # Append the actual sequence (from the ASV table's Sequence column) to the
+    # TaxID so per-ASV rows remain identifiable across runs even though SeqID
+    # is now the symbolic ASV_<i> name.
+    sequences = merged.get("Sequence", pd.Series(merged.index, index=merged.index))
+    merged["TaxID"] = tax_string + "|" + sequences.fillna("").astype(str)
 
     result = merged[["TaxID"] + sample_cols].reset_index(drop=True)
 
