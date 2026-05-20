@@ -64,7 +64,7 @@ def helpMessage() {
     Common:
       --outdir             Output directory                            (default: ./results)
       --denoiser           Comma list: dada2,dada2_nodenoise           (default: dada2)
-      --classifiers        Comma list: qnb,qblast,idtaxa,assigntaxonomy (default: all four)
+      --classifiers        Comma list: qnb,qblast,idtaxa,assigntaxonomy (default: qnb,qblast,assigntaxonomy — idtaxa is opt-in, genus-only)
       --all                Run every denoiser × classifier combination
       --quick              Subsample reads to --quick_depth before FastQC (smoke test)
       --quick_depth        Reads per sample under --quick               (default: ${params.quick_depth})
