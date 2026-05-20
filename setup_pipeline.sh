@@ -339,6 +339,7 @@ if [ ! -s silva-138.2-ssu-nr99-rna-seqs.qza ]; then
     qiime rescript get-silva-data \
         --p-version '138.2' \
         --p-target 'SSURef_NR99' \
+        --p-include-species-labels \
         --o-silva-sequences silva-138.2-ssu-nr99-rna-seqs.qza \
         --o-silva-taxonomy silva-138.2-ssu-nr99-tax.qza
 fi
@@ -370,7 +371,7 @@ if [ ! -s silva-138.2-ssu-nr99-seqs-derep-super.qza ]; then
         --i-sequences silva-138.2-ssu-nr99-seqs-filt.qza \
         --i-taxa silva-138.2-ssu-nr99-tax.qza \
         --p-rank-handles 'domain' 'phylum' 'class' 'order' 'family' 'genus' 'species' \
-        --p-mode 'super' \
+        --p-mode 'uniq' \
         --o-dereplicated-sequences silva-138.2-ssu-nr99-seqs-derep-super.qza \
         --o-dereplicated-taxa silva-138.2-ssu-nr99-tax-derep-super.qza
 fi
