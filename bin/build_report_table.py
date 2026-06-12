@@ -80,7 +80,9 @@ def main():
     with open(args.infile, newline="") as fin, \
          open(args.outfile, "w", newline="") as fout:
         reader = csv.reader(fin, delimiter="\t")
-        writer = csv.writer(fout, delimiter="\t")
+        # lineterminator="\n": csv.writer defaults to "\r\n" on every OS, which
+        # leaves a stray CR on the last column's value. Force clean Unix endings.
+        writer = csv.writer(fout, delimiter="\t", lineterminator="\n")
 
         header_in = next(reader, None)
         if header_in is None:
