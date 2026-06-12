@@ -24,6 +24,7 @@ include { HOST_REMOVAL; PHIX_REMOVAL } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
 include { DADA2_PACBIO; DADA2_PACBIO_NODENOISE } from './modules/dada2'
 include { QIIME_NAIVE_BAYES; QIIME_BLAST; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
+include { REPORT_TABLE }              from './modules/report_table'
 include { METASTANDARD }              from './modules/MetaStandard16S'
 include { METASTANDARD_PLOTS }        from './modules/metastandard_plots'
 include { MOCK_EVALUATION }           from './modules/mock_evaluation'
@@ -65,6 +66,7 @@ def helpMessage() {
       --outdir             Output directory                            (default: ./results)
       --denoiser           Comma list: dada2,dada2_nodenoise           (default: dada2)
       --classifiers        Comma list: qnb,qblast,idtaxa,assigntaxonomy (default: qnb,qblast,assigntaxonomy — idtaxa is opt-in, genus-only)
+      --report_classifier  Classifier reshaped into the wide report taxa_table.tsv (default: ${params.report_classifier})
       --all                Run every denoiser × classifier combination
       --quick              Subsample reads to --quick_depth before FastQC (smoke test)
       --quick_depth        Reads per sample under --quick               (default: ${params.quick_depth})
@@ -245,6 +247,19 @@ workflow {
     if ('assigntaxonomy' in classifiers) {
         ASSIGNTAXONOMY(ch_asv)
         ch_taxa = ch_taxa.mix(ASSIGNTAXONOMY.out.taxa)
+    }
+
+    // ============================================================
+    // Report table: one canonical classifier (--report_classifier) reshaped
+    // into the wide taxa_table.tsv the downstream R reports consume. Additive
+    // — the per-classifier long tables are left untouched.
+    // ============================================================
+    if (params.report_classifier in classifiers) {
+        ch_report_in = ch_taxa.filter { it[1] == params.report_classifier }
+        REPORT_TABLE(ch_report_in)
+    } else {
+        log.warn "report_classifier '${params.report_classifier}' is not among the " +
+                 "enabled classifiers (${classifiers.join(', ')}); skipping report table."
     }
 
     // ============================================================
