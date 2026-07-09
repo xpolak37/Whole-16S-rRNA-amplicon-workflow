@@ -336,6 +336,7 @@ mkdir -p "$NUMBA_CACHE_DIR" "$TMPDIR"
 
 # Mirrors bin/extract_silva.sh, with SILVA 138.2.
 if [ ! -s silva-138.2-ssu-nr99-rna-seqs.qza ]; then
+    echo "Downloading SILVA 138.2 SSURef_NR99 sequences and taxonomy..."
     qiime rescript get-silva-data \
         --p-version '138.2' \
         --p-target 'SSURef_NR99' \
@@ -345,18 +346,21 @@ if [ ! -s silva-138.2-ssu-nr99-rna-seqs.qza ]; then
 fi
 
 if [ ! -s silva-138.2-ssu-nr99-seqs.qza ]; then
+    echo "Reverse-transcribing SILVA RNA sequences to DNA..."
     qiime rescript reverse-transcribe \
         --i-rna-sequences silva-138.2-ssu-nr99-rna-seqs.qza \
         --o-dna-sequences silva-138.2-ssu-nr99-seqs.qza
 fi
 
 if [ ! -s silva-138.2-ssu-nr99-seqs-cleaned.qza ]; then
+    echo "Culling SILVA sequences with degenerate bases or homopolymers > 8..."
     qiime rescript cull-seqs \
         --i-sequences silva-138.2-ssu-nr99-seqs.qza \
         --o-clean-sequences silva-138.2-ssu-nr99-seqs-cleaned.qza
 fi
 
 if [ ! -s silva-138.2-ssu-nr99-seqs-filt.qza ]; then
+    echo "Filtering SILVA sequences by length and taxon..."
     qiime rescript filter-seqs-length-by-taxon \
         --i-sequences silva-138.2-ssu-nr99-seqs-cleaned.qza \
         --i-taxonomy silva-138.2-ssu-nr99-tax.qza \
@@ -367,6 +371,7 @@ if [ ! -s silva-138.2-ssu-nr99-seqs-filt.qza ]; then
 fi
 
 if [ ! -s silva-138.2-ssu-nr99-seqs-derep-super.qza ]; then
+    echo "Dereplicating SILVA sequences and taxonomy..."
     qiime rescript dereplicate \
         --i-sequences silva-138.2-ssu-nr99-seqs-filt.qza \
         --i-taxa silva-138.2-ssu-nr99-tax.qza \
@@ -377,6 +382,7 @@ if [ ! -s silva-138.2-ssu-nr99-seqs-derep-super.qza ]; then
 fi
 
 if [ ! -s silva-138.2-ssu-nr99-seqs-27F-1492R.qza ]; then
+    echo "Extracting 27F-1492R reads from dereplicated SILVA sequences..."
     qiime feature-classifier extract-reads \
         --i-sequences silva-138.2-ssu-nr99-seqs-derep-super.qza \
         --p-f-primer AGRGTTYGATYMTGGCTCAG \
@@ -387,6 +393,7 @@ if [ ! -s silva-138.2-ssu-nr99-seqs-27F-1492R.qza ]; then
 fi
 
 if [ ! -s qblast_seqs.qza ] || [ ! -s qblast_tax.qza ]; then
+    echo "Dereplicating 27F-1492R reads..."
     qiime rescript dereplicate \
         --i-sequences silva-138.2-ssu-nr99-seqs-27F-1492R.qza \
         --i-taxa silva-138.2-ssu-nr99-tax-derep-super.qza \
@@ -396,6 +403,7 @@ if [ ! -s qblast_seqs.qza ] || [ ! -s qblast_tax.qza ]; then
 fi
 
 if [ ! -s qnb_classifier.qza ]; then
+    echo "Training QIIME naive-bayes classifier on dereplicated 27F-1492R reads..."
     qiime feature-classifier fit-classifier-naive-bayes \
         --i-reference-reads qblast_seqs.qza \
         --i-reference-taxonomy qblast_tax.qza \
@@ -404,6 +412,7 @@ fi
 
 # Export the dereplicated 27F-1492R seqs to fasta for vsearch --orient
 if [ ! -s silva-27F-1492R-orient.fasta ]; then
+    echo "Exporting dereplicated 27F-1492R sequences to FASTA for vsearch orientation..."
     qiime tools export --input-path qblast_seqs.qza --output-path orient_export
     mv orient_export/dna-sequences.fasta silva-27F-1492R-orient.fasta
     rm -rf orient_export
