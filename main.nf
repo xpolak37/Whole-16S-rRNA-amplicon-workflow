@@ -20,7 +20,7 @@ include { CUSTOM_SUMMARY_PARSE; CUSTOM_SUMMARY_BLAST; CUSTOM_SUMMARY_RENDER } fr
 include { LIMA_DEMUX }                from './modules/lima'
 include { BAM2FASTQ }                 from './modules/bam2fastq'
 include { CUTADAPT }                  from './modules/cutadapt'
-include { HOST_REMOVAL; PHIX_REMOVAL } from './modules/hostile'
+include { HOST_REMOVAL; PHIX_REMOVAL; FASTQ_SYNC } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
 include { DADA2_PACBIO; DADA2_PACBIO_NODENOISE } from './modules/dada2'
 include { QIIME_NAIVE_BAYES; QIIME_BLAST; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
@@ -204,7 +204,8 @@ workflow {
         ch_phix_counts = Channel.empty()
     } else {
         PHIX_REMOVAL(HOST_REMOVAL.out.reads)
-        ch_after_phix  = PHIX_REMOVAL.out.reads
+        FASTQ_SYNC(PHIX_REMOVAL.out.reads)
+        ch_after_phix  = FASTQ_SYNC.out.reads
         ch_phix_counts = PHIX_REMOVAL.out.counts
     }
     VSEARCH_ORIENT(ch_after_phix)

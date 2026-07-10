@@ -174,6 +174,7 @@ declare -A CONTAINERS=(
     ["quay.io-biocontainers-pbtk-3.5.0--h9ee0642_0.img"]="docker://quay.io/biocontainers/pbtk:3.5.0--h9ee0642_0"
     ["quay.io-biocontainers-blast-2.15.0--pl5321h6f7f691_1.img"]="docker://quay.io/biocontainers/blast:2.15.0--pl5321h6f7f691_1"
     ["quay.io-biocontainers-entrez-direct-24.0--he881be0_0.img"]="docker://quay.io/biocontainers/entrez-direct:24.0--he881be0_0"
+    ["quay.io-biocontainers-fastp-0.23.4--hadf994f_3.img"]="docker://quay.io/biocontainers/fastp:0.23.4--hadf994f_3"
 )
 
 cd "$SING_DIR"

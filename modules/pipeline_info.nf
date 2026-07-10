@@ -11,6 +11,6 @@ process COLLATE_COUNTS {
 
     script:
     """
-    collate_counts.py read_counts_summary.tsv ${counts_files.join(' ')}
+    ${projectDir}/bin/collate_counts.py read_counts_summary.tsv ${counts_files.join(' ')}
     """
 }
