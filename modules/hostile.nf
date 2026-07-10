@@ -53,3 +53,29 @@ process PHIX_REMOVAL {
     printf 'sample\\tcount\\n%s\\t%s\\n' "${meta.id}" "\$count" > ${meta.id}.phix_removal.counts.tsv
     """
 }
+
+process FASTQ_SYNC {
+    tag "${meta.id}"
+    publishDir "${params.outdir}/hostile", mode: 'copy'
+
+    input:
+    tuple val(meta), path(read1)
+
+    output:
+    tuple val(meta), path("${meta.id}.decontam_synced.fastq.gz"), emit: reads
+    path("${meta.id}_fastp.json"), emit: json
+    path("${meta.id}_fastp.html"), emit: html
+
+    script:
+    """
+    fastp \\
+        --in1 ${read1} \\
+        --out1 ${meta.id}.decontam_synced.fastq.gz \\
+        --length_required 2 \\
+        --disable_adapter_trimming \\
+        --disable_quality_filtering \\
+        --thread ${task.cpus} \\
+        --json ${meta.id}_fastp.json \\
+        --html ${meta.id}_fastp.html
+    """
+}
