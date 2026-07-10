@@ -13,7 +13,7 @@ process VSEARCH_ORIENT {
     """
     vsearch \\
         --orient ${reads} \\
-        --db ${params.silva_orient_db} \\
+        --db ${params.silva_orient_db}/silva-27F-1492R-orient.fasta \\
         --fastqout ${meta.id}-oriented.fq \\
         --threads ${task.cpus}
 
