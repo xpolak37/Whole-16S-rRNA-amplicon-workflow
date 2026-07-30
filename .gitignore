@@ -1,9 +1,29 @@
+# Editor / local tooling
 .vscode/
 CLAUDE.md
 .claude/
-docs/
-.nf_scratch/
 
+# Local design notes, kept out of the repo
+docs/
+
+# Nextflow runtime state
 work/
 .nextflow/
 .nextflow.log*
+.nf_scratch/
+
+# Pipeline outputs
+results/
+
+# Reference data and container images fetched by setup_pipeline.sh.
+# Large, machine-local, never versioned.
+singularity_cache/
+classifiers/
+hostile_index/
+silva_orient/
+blast_db/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
