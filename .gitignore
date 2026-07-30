@@ -3,3 +3,7 @@ CLAUDE.md
 .claude/
 docs/
 .nf_scratch/
+
+work/
+.nextflow/
+.nextflow.log*

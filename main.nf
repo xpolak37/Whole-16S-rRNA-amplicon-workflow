@@ -23,7 +23,8 @@ include { CUTADAPT }                  from './modules/cutadapt'
 include { HOST_REMOVAL; PHIX_REMOVAL; FASTQ_SYNC } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
 include { DADA2_PACBIO; DADA2_PACBIO_NODENOISE } from './modules/dada2'
-include { QIIME_NAIVE_BAYES; QIIME_BLAST; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
+include { DADA2_FILTER; DADA2_LEARN_ERRORS; DADA2_DENOISE; DADA2_MERGE } from './modules/dada2'
+include { QIIME_NAIVE_BAYES; QIIME_BLAST_CHUNK; QIIME_BLAST_MERGE; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
 include { REPORT_TABLE }              from './modules/report_table'
 include { METASTANDARD }              from './modules/MetaStandard16S'
 include { METASTANDARD_PLOTS }        from './modules/metastandard_plots'
@@ -218,9 +219,24 @@ workflow {
     ch_asv             = Channel.empty()
     ch_denoiser_counts = Channel.empty()
     if ('dada2' in denoisers) {
-        DADA2_PACBIO(ch_oriented_pool)
-        ch_asv             = ch_asv.mix(DADA2_PACBIO.out.asv)
-        ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO.out.counts)
+        if (params.dada2_split) {
+            // Split path: one task per sample for filtering and denoising, with
+            // the two genuinely cohort-level steps (error model, chimera
+            // consensus) kept whole. Statistically identical to the monolith
+            // below because dada() uses pool = FALSE.
+            DADA2_FILTER(VSEARCH_ORIENT.out.reads)
+            DADA2_LEARN_ERRORS(DADA2_FILTER.out.filt.map { meta, f -> f }.collect())
+            DADA2_DENOISE(DADA2_FILTER.out.filt.combine(DADA2_LEARN_ERRORS.out.err))
+            DADA2_MERGE(DADA2_DENOISE.out.uniques.collect(),
+                        DADA2_FILTER.out.stats.collect(),
+                        DADA2_DENOISE.out.stats.collect())
+            ch_asv             = ch_asv.mix(DADA2_MERGE.out.asv)
+            ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_MERGE.out.counts)
+        } else {
+            DADA2_PACBIO(ch_oriented_pool)
+            ch_asv             = ch_asv.mix(DADA2_PACBIO.out.asv)
+            ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO.out.counts)
+        }
     }
     if ('dada2_nodenoise' in denoisers) {
         DADA2_PACBIO_NODENOISE(ch_oriented_pool)
@@ -237,8 +253,18 @@ workflow {
         ch_taxa = ch_taxa.mix(QIIME_NAIVE_BAYES.out.taxa)
     }
     if ('qblast' in classifiers) {
-        QIIME_BLAST(ch_asv)
-        ch_taxa = ch_taxa.mix(QIIME_BLAST.out.taxa)
+        // Split rep-seqs into chunks classified in parallel; each query is
+        // classified independently of the others, so this is equivalent to one
+        // large run. A chunk size at or above the ASV count degenerates to the
+        // original single-task behaviour.
+        ch_blast_chunks = ch_asv.flatMap { denoiser, asv_table, asv_fasta ->
+            asv_fasta.splitFasta(by: params.blast_chunk_size, file: true)
+                     .withIndex()
+                     .collect { chunk, i -> tuple(denoiser, i, chunk) }
+        }
+        QIIME_BLAST_CHUNK(ch_blast_chunks)
+        QIIME_BLAST_MERGE(QIIME_BLAST_CHUNK.out.chunk_taxa.groupTuple())
+        ch_taxa = ch_taxa.mix(QIIME_BLAST_MERGE.out.taxa)
     }
     if ('idtaxa' in classifiers) {
         IDTAXA(ch_asv)
