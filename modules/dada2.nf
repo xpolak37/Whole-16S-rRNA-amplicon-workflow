@@ -130,6 +130,60 @@ process DADA2_MERGE {
     """
 }
 
+// Split no-denoise path: reuses DADA2_FILTER, then derep per sample and merge.
+//
+// This path merges raw uniques rather than dada() output, so the merge stage --
+// not the derep stage -- is the scaling problem: makeSequenceTable builds a
+// dense samples x sequences matrix over every distinct sequence in the cohort.
+// dada2_nodenoise_merge.R prefilters sequences that provably cannot clear
+// minAbundance before building that matrix. See the header of that script for
+// the argument; the result is identical to the cohort-level table.
+
+process DADA2_DEREP {
+    tag "${meta.id}"
+
+    input:
+    tuple val(meta), path(filt)
+
+    output:
+    path "${meta.id}.uniques.tsv.gz",   emit: uniques
+    path "${meta.id}.derep_stats.tsv",  emit: stats
+
+    script:
+    """
+    Rscript ${projectDir}/bin/dada2_derep.R \\
+        --input ${filt} \\
+        --sample ${meta.id}
+    """
+}
+
+process DADA2_NODENOISE_MERGE {
+    tag "dada2_nodenoise/merge"
+    publishDir "${params.outdir}/dada2/dada2_nodenoise", mode: 'copy'
+
+    input:
+    path 'uniq/*'
+    path 'fstats/*'
+    path 'dstats/*'
+
+    output:
+    tuple val('dada2_nodenoise'), path('ASV_table.tsv'), path('ASV_sequences.fasta'), emit: asv
+    path  'track_control.tsv',                                                        emit: track
+    path  'dada2_nodenoise.counts.tsv',                                               emit: counts
+
+    script:
+    """
+    Rscript ${projectDir}/bin/dada2_nodenoise_merge.R \\
+        --uniques uniq \\
+        --filter_stats fstats \\
+        --derep_stats dstats \\
+        --nproc ${task.cpus} \\
+        --min_fold ${params.dada2_min_fold} \\
+        --minAbundance ${params.minAbundance} \\
+        --counts_name dada2_nodenoise.counts.tsv
+    """
+}
+
 process DADA2_PACBIO_NODENOISE {
     tag "dada2_nodenoise"
     publishDir "${params.outdir}/dada2/dada2_nodenoise", mode: 'copy'

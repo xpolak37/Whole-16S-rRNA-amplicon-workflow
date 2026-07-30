@@ -24,6 +24,7 @@ include { HOST_REMOVAL; PHIX_REMOVAL; FASTQ_SYNC } from './modules/hostile'
 include { VSEARCH_ORIENT }            from './modules/orient'
 include { DADA2_PACBIO; DADA2_PACBIO_NODENOISE } from './modules/dada2'
 include { DADA2_FILTER; DADA2_LEARN_ERRORS; DADA2_DENOISE; DADA2_MERGE } from './modules/dada2'
+include { DADA2_DEREP; DADA2_NODENOISE_MERGE } from './modules/dada2'
 include { QIIME_NAIVE_BAYES; QIIME_BLAST_CHUNK; QIIME_BLAST_MERGE; IDTAXA; ASSIGNTAXONOMY } from './modules/tax_classifiers'
 include { REPORT_TABLE }              from './modules/report_table'
 include { METASTANDARD }              from './modules/MetaStandard16S'
@@ -218,13 +219,19 @@ workflow {
 
     ch_asv             = Channel.empty()
     ch_denoiser_counts = Channel.empty()
+
+    // Split mode runs filterAndTrim one task per sample. Both denoisers consume
+    // the same filtered reads, so DADA2_FILTER is invoked once here rather than
+    // inside each branch -- a process can only be invoked once per workflow.
+    if (params.dada2_split && denoisers) {
+        DADA2_FILTER(VSEARCH_ORIENT.out.reads)
+    }
+
     if ('dada2' in denoisers) {
         if (params.dada2_split) {
-            // Split path: one task per sample for filtering and denoising, with
-            // the two genuinely cohort-level steps (error model, chimera
-            // consensus) kept whole. Statistically identical to the monolith
-            // below because dada() uses pool = FALSE.
-            DADA2_FILTER(VSEARCH_ORIENT.out.reads)
+            // The two genuinely cohort-level steps (error model, chimera
+            // consensus) stay whole; denoising fans out per sample. Identical to
+            // the monolith below because dada() uses pool = FALSE.
             DADA2_LEARN_ERRORS(DADA2_FILTER.out.filt.map { meta, f -> f }.collect())
             DADA2_DENOISE(DADA2_FILTER.out.filt.combine(DADA2_LEARN_ERRORS.out.err))
             DADA2_MERGE(DADA2_DENOISE.out.uniques.collect(),
@@ -238,10 +245,20 @@ workflow {
             ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO.out.counts)
         }
     }
+
     if ('dada2_nodenoise' in denoisers) {
-        DADA2_PACBIO_NODENOISE(ch_oriented_pool)
-        ch_asv             = ch_asv.mix(DADA2_PACBIO_NODENOISE.out.asv)
-        ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO_NODENOISE.out.counts)
+        if (params.dada2_split) {
+            DADA2_DEREP(DADA2_FILTER.out.filt)
+            DADA2_NODENOISE_MERGE(DADA2_DEREP.out.uniques.collect(),
+                                  DADA2_FILTER.out.stats.collect(),
+                                  DADA2_DEREP.out.stats.collect())
+            ch_asv             = ch_asv.mix(DADA2_NODENOISE_MERGE.out.asv)
+            ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_NODENOISE_MERGE.out.counts)
+        } else {
+            DADA2_PACBIO_NODENOISE(ch_oriented_pool)
+            ch_asv             = ch_asv.mix(DADA2_PACBIO_NODENOISE.out.asv)
+            ch_denoiser_counts = ch_denoiser_counts.mix(DADA2_PACBIO_NODENOISE.out.counts)
+        }
     }
 
     // ============================================================
