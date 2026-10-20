@@ -43,15 +43,18 @@ EOF
     """
 }
 
-process QIIME_BLAST {
-    tag "${denoiser}/qblast"
-    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/qblast" }, mode: 'copy'
+// classify-consensus-blast ran at 100% CPU (one core) for 7h19m on 30 samples
+// despite --p-num-threads 8. Each query is classified independently, so the
+// rep-seqs are split into chunks and classified in parallel tasks, then merged
+// back into ASV order by bin/merge_blast_chunks.py.
+process QIIME_BLAST_CHUNK {
+    tag "${denoiser}/qblast/chunk${index}"
 
     input:
-    tuple val(denoiser), path(asv_table), path(asv_fasta)
+    tuple val(denoiser), val(index), path(chunk_fasta)
 
     output:
-    tuple val(denoiser), val('qblast'), path('taxa_table_qblast.tsv'), emit: taxa
+    tuple val(denoiser), path("chunk_${index}.taxonomy.tsv"), emit: chunk_taxa
 
     script:
     """
@@ -60,7 +63,7 @@ process QIIME_BLAST {
     mkdir -p \${NUMBA_CACHE_DIR} \${TMPDIR}
 
     qiime tools import \\
-        --input-path ${asv_fasta} \\
+        --input-path ${chunk_fasta} \\
         --output-path rep-seqs.qza \\
         --type 'FeatureData[Sequence]'
 
@@ -76,19 +79,25 @@ process QIIME_BLAST {
         --o-search-results blast_results.qza
 
     qiime tools export --input-path taxonomy.qza --output-path .
+    mv taxonomy.tsv chunk_${index}.taxonomy.tsv
+    """
+}
 
-    python3 - <<'EOF'
-import csv
-with open("taxonomy.tsv", newline='') as fin, \\
-     open("taxa_table_qblast.tsv", "w", newline='') as fout:
-    reader = csv.reader(fin, delimiter="\\t")
-    writer = csv.writer(fout, delimiter="\\t")
-    header = next(reader)
-    header[0], header[1], header[2] = "SeqID", "Taxonomy", "Confidence"
-    writer.writerow(header)
-    for row in reader:
-        writer.writerow(row)
-EOF
+process QIIME_BLAST_MERGE {
+    tag "${denoiser}/qblast"
+    publishDir path: { "${params.outdir}/taxonomy/${denoiser}/qblast" }, mode: 'copy'
+
+    input:
+    tuple val(denoiser), path(chunks)
+
+    output:
+    tuple val(denoiser), val('qblast'), path('taxa_table_qblast.tsv'), emit: taxa
+
+    script:
+    """
+    python3 ${projectDir}/bin/merge_blast_chunks.py \\
+        taxa_table_qblast.tsv \\
+        ${chunks}
     """
 }
 
